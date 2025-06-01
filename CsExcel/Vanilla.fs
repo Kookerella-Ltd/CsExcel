@@ -98,11 +98,32 @@ open System
 //    member _.FreezePanes(freezePanes) = 
 //        Item.FreezePanes freezePanes
 
+module BorderColorFactory = 
+    let Top = BorderColor.Top
+    let Right = BorderColor.Right
+    let Bottom = BorderColor.Bottom
+    let Left = BorderColor.Left
+    let All = BorderColor.All
+
+module HorizontalAlignmentFactory = 
+    let Left = HorizontalAlignment.Left
+    let Center = HorizontalAlignment.Center
+    let Right = HorizontalAlignment.Right
+
 module FontEmphasisFactory = 
     let Bold = FontEmphasis.Bold
     let Italic = FontEmphasis.Italic
     let Underline = FontEmphasis.Underline
     let StrikeThrough = FontEmphasis.StrikeThrough
+
+module SizeFactory = 
+    let ColWidth = Size.ColWidth
+    let RowHeight = Size.RowHeight
+
+module VerticalAlignmentFactory =
+    let Base = VerticalAlignment.Base
+    let Middle = VerticalAlignment.Middle
+    let TopMost = VerticalAlignment.TopMost
 
 module BorderFactory = 
     let All = Border.All
@@ -119,6 +140,7 @@ module PositionFactory =
     let DownBy(i) = Position.DownBy i
     let LeftBy(i) = Position.LeftBy i
     let UpBy(i) = Position.UpBy i
+    let Indent(i) = Position.Indent i
     let IndentBy(i) = Position.IndentBy i
     let NewRow = Position.NewRow
     let Stay = Position.Stay

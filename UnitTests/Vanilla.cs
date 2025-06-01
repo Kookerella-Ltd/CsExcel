@@ -5,11 +5,21 @@ using static CsExcel.ItemFactory;
 using static CsExcel.CellPropFactory;
 using static CsExcel.BorderFactory;
 using static CsExcel.FontEmphasisFactory;
+using static CsExcel.HorizontalAlignmentFactory;
+using static CsExcel.VerticalAlignmentFactory;
+using static CsExcel.SizeFactory;
 using System.Globalization;
 using static ClosedXML.Excel.XLBorderStyleValues;
 using static ClosedXML.Excel.XLFontUnderlineValues;
 using System.Runtime.CompilerServices;
 using Microsoft.FSharp.Control;
+using DocumentFormat.OpenXml.Bibliography;
+using static FsExcel.Size;
+using ClosedXML.Excel;
+using static FsExcel.Item;
+using static FsExcel.Position;
+using System;
+using static FsExcel.CellProp;
 
 namespace UnitTests
 {
@@ -58,7 +68,7 @@ namespace UnitTests
                 {
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
                     yield return Cell([String(monthName)]);
-                    yield return Cell([Integer(monthName.Length), Next(NewRow)]);
+                    yield return Cell([Integer(monthName.Length), Next(PositionFactory.NewRow)]);
                 }
             };
             CsExcel.Render.AsFile(Cells(), """c:\temp\VerticalMovement2.xlsx""");
@@ -73,7 +83,7 @@ namespace UnitTests
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
                     yield return Cell([String(monthName)]);
                     yield return Cell([Integer(monthName.Length)]);
-                    yield return Go(NewRow);
+                    yield return Go(PositionFactory.NewRow);
                 }
             };
             CsExcel.Render.AsFile(Cells(), """c:\temp\VerticalMovement3.xlsx""");
@@ -86,10 +96,10 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(1, 12))
                 {
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
-                    yield return Go(IndentBy(2));
+                    yield return Go(Indent(2));
                     yield return Cell([String(monthName)]);
                     yield return Cell([Integer(monthName.Length)]);
-                    yield return Go(NewRow);
+                    yield return Go(PositionFactory.NewRow);
                 }
             };
             CsExcel.Render.AsFile(Cells(), """c:\temp\Indentation.xlsx""");
@@ -104,12 +114,12 @@ namespace UnitTests
                     yield return Cell(
                         [
                             String(heading),
-                            Border(Bottom(Medium)),
+                            Border(Bottom(XLBorderStyleValues.Medium)),
                             FontEmphasis(Bold),
                             FontEmphasis(Italic)
                         ]);
                 }
-                yield return Go(NewRow);
+                yield return Go(PositionFactory.NewRow);
                 IEnumerable<CellProp> CellProps(string monthName)
                 {
                     yield return String(monthName);
@@ -127,7 +137,50 @@ namespace UnitTests
                             Integer(monthName.Length),
                         ]
                     );
-                    yield return Go(NewRow);
+                    yield return Go(PositionFactory.NewRow);
+                }
+            };
+
+            CsExcel.Render.AsFile(Items(), """c:\temp\BorderAndFontStyling.xlsx""");
+        }
+        [Fact]
+        public void BorderAndFontStyling2()
+        {
+            IEnumerable<Item> Items()
+            {
+                CellProp[] headingStyle = [
+                    Border(Bottom(XLBorderStyleValues.Medium)),
+                    FontEmphasis(Bold),
+                    FontEmphasis(Italic)
+                ];
+
+                foreach (var heading in new[] { "Month", "Letter Count" })
+                {
+                    yield return Cell(
+                        [
+                            String(heading),
+                            .. headingStyle
+                        ]);
+                }
+                yield return Go(PositionFactory.NewRow);
+                IEnumerable<CellProp> CellProps(string monthName)
+                {
+                    yield return String(monthName);
+                    yield return FontEmphasis(Underline(DoubleAccounting));
+                    if (monthName == "May")
+                    {
+                        yield return FontEmphasis(StrikeThrough);
+                    }
+                }
+                foreach (var m in Enumerable.Range(1, 12))
+                {
+                    var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
+                    yield return Cell(CellProps(monthName));
+                    yield return Cell([
+                            Integer(monthName.Length),
+                        ]
+                    );
+                    yield return Go(PositionFactory.NewRow);
                 }
             };
 
@@ -135,30 +188,230 @@ namespace UnitTests
         }
 
         [Fact]
-        public void HelloWorld2()
+        public void FontAndNameSize()
         {
-            //Item[] makeExcel(ItemFactory factory)
-            //{
-            //    return new[]
-            //    {
-            //        factory.Cell(f => new[] { f.String("hello world") }),
-            //        factory.Cell(f => new[] { f.String("This is a test") })
-            //    };
-            //}
-            //ItemArrayExtensions.AsFile(makeExcel);
+            var fontNames =
+                SixLabors.Fonts.SystemFonts.Collection.Families.Select((fontFamily, i) => (fontFamily.Name, i)).OrderBy(f => f.Item1).Take(20);
+            IEnumerable<Item> Items()
+            {
+                foreach (var (fontName, i) in fontNames)
+                {
+                    yield return
+                            Cell([
+                                String(fontName),
+                                FontName(fontName),
+                                FontSize(10 + (i * 2))]);
+
+                }
+                Go(PositionFactory.NewRow);
+            };
+            CsExcel.Render.AsFile(Items(), """c:\temp\FontAndNameSize.xlsx""");
+        }
+
+        [Fact]
+        public void WrapText()
+        {
+            Item[] items =
+            [
+                Cell([
+                    String("Without wrap text:"),
+                    HorizontalAlignment(Center),
+                    VerticalAlignment(VerticalAlignmentFactory.Middle),
+                    CellSize(ColWidth(16)),
+                ]),
+                Cell([
+                    String("The quick brown fox jumps over the lazy dog."),
+                    HorizontalAlignment(Center),
+                    VerticalAlignment(VerticalAlignmentFactory.Middle),
+                ]),
+                Go(PositionFactory.NewRow),
+                Cell([
+                    String("Without wrap text:"),
+                    HorizontalAlignment(Center),
+                    VerticalAlignment(VerticalAlignmentFactory.Middle),
+                    CellSize(ColWidth(16)),
+                ]),
+                Cell([
+                    String("The quick brown fox jumps over the lazy dog."),
+                    HorizontalAlignment(Center),
+                    VerticalAlignment(VerticalAlignmentFactory.Middle),
+                    CellPropFactory.WrapText(true),
+                ]),
+            ];
+            CsExcel.Render.AsFile(items, """c:\temp\WrapText.xlsx""");
         }
         [Fact]
-        public void HelloWorld3()
+        public void TextRotation()
         {
-            //Item[] makeExcel(ItemFactory factory)
-            //{
-            //    return new[]
-            //    {
-            //        factory.Cell(empty => empty.AddString("hello world")),
-            //        factory.Cell(empty => empty.AddString("This is a test"))
-            //    };
-            //}
-            //ItemArrayExtensions.AsFile(makeExcel);
+            var (p, m, g) = ("⏺", "◑", "⭘");
+            string[][] performances =
+                [
+                    [ p, m, g, g, p, p, g, p, p, g ],
+                    [ g, m, g, m, g, p, g, p, p, g ],
+                    [ g, m, m, g, g, p, g, g, p, g ],
+                    [ m, m, m, p, p, p, g, m, p, g ],
+                    [ p, p, p, p, g, g, m, m, p, g ],
+                    [ p, g, p, g, g, g, p, g, m, m ],
+                    [ g, p, g, p, m, p, m, p, p, g ],
+                    [ p, p, m, g, p, p, p, m, p, m ],
+                ];
+            string GetPerformance(int categoryIndex, int supplierIndex) =>
+                performances[supplierIndex - 1][categoryIndex - 1];
+
+            IEnumerable<Item> Items()
+            {
+                yield return Go(RC(1, 2));
+                foreach (var category in Enumerable.Range(1, 10))
+                {
+                    yield return Cell([
+                        String($"Category {category}"),
+                        CellPropFactory.TextRotation(45),
+                        CellSize(RowHeight(45))]);
+                }
+                yield return Go(PositionFactory.NewRow);
+                foreach (var supplier in Enumerable.Range(1, 8))
+                {
+                    yield return Cell([
+                        String($"Supplier {supplier}"),
+                        CellSize(ColWidth(10))]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+                yield return Go(RC(2, 2));
+                yield return Go(Indent(2));
+                foreach (var supplier in Enumerable.Range(1, 8))
+                {
+                    foreach (var category in Enumerable.Range(1, 10))
+                    {
+                        yield return Cell([String(GetPerformance(category, supplier)), HorizontalAlignment(Center)]);
+                    }
+                    yield return Go(PositionFactory.NewRow);
+                }
+            }
+            CsExcel.Render.AsFile(Items(), """c:\temp\TextRotation.xlsx""");
+        }
+        static class RandomGenerator
+        {
+            static uint state = 1; // Mutable state variable
+
+            static ulong Mangle(ulong n)
+            {
+                return (n & 0x7FFFFFFF) + (n >> 31);
+            }
+
+            public static double NextDouble()
+            {
+                state = (uint)(Mangle(Mangle(state * 48271UL)));
+                return (double)state / int.MaxValue;
+            }
+        }
+
+        [Fact]
+        public void NumberFormattingAndAlignment()
+        {
+            CellProp[] headingStyle = [
+                Border(Bottom(XLBorderStyleValues.Medium)),
+                FontEmphasis(Bold),
+                FontEmphasis(Italic)
+            ];
+            IEnumerable<Item> Items()
+            {
+                foreach (var (heading, alignment) in new (string, FsExcel.HorizontalAlignment)[] {
+                    ("Stock Item", HorizontalAlignmentFactory.Left),
+                    ("Price", HorizontalAlignmentFactory.Right),
+                    ("Count", HorizontalAlignmentFactory.Right) })
+                {
+                    yield return Cell([
+                        String(heading),
+                        .. headingStyle,
+                        HorizontalAlignment(alignment)
+                    ]);
+                }
+                yield return Go(PositionFactory.NewRow);
+                foreach (var item in new[] { "Apples", "Oranges", "Pears" })
+                {
+                    yield return Cell([String(item)]);
+                    yield return Cell([Float(RandomGenerator.NextDouble() * 1000.0), FormatCode("$0.00")]);
+                    yield return Cell([Integer((int)(RandomGenerator.NextDouble() * 100.0)), FormatCode("#,##0")]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+            };
+            CsExcel.Render.AsFile(Items(), """c:\temp\NumberFormattingAndAlignment.xlsx""");
+        }
+        [Fact]
+        public void Formulae()
+        {
+            CellProp[] headingStyle = [
+                Border(Bottom(XLBorderStyleValues.Medium)),
+                FontEmphasis(Bold),
+                FontEmphasis(Italic)
+            ];
+            IEnumerable<Item> Items()
+            {
+                foreach (var (heading, alignment) in new (string, FsExcel.HorizontalAlignment)[] {
+                    ("Stock Item", HorizontalAlignmentFactory.Left),
+                    ("Price", HorizontalAlignmentFactory.Right),
+                    ("Count", HorizontalAlignmentFactory.Right),
+                    ("Total", HorizontalAlignmentFactory.Right) })
+                {
+                    yield return Cell([
+                        String(heading),
+                        .. headingStyle,
+                        HorizontalAlignment(alignment)
+                    ]);
+                }
+                yield return Go(PositionFactory.NewRow);
+                foreach (var (index, item) in new[] { "Apples", "Oranges", "Pears" }.Select((item, index) => (index, item)))
+                {
+                    yield return Cell([String(item)]);
+                    yield return Cell([Float(RandomGenerator.NextDouble() * 1000.0), FormatCode("$0.00")]);
+                    yield return Cell([Integer((int)(RandomGenerator.NextDouble() * 100.0)), FormatCode("#,##0")]);
+                    yield return Cell([FormulaA1($"=B{index + 2}*C{index + 2}"), FormatCode("$#,##0.00")]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+            };
+            CsExcel.Render.AsFile(Items(), """c:\temp\Formulae.xlsx""");
+        }
+        [Fact]
+        void Color()
+        {
+            IEnumerable<Item> Items()
+            {
+                IEnumerable<int> values =
+                    [
+                        .. (Enumerable.Range(0, 8).Select(x => x * 32)),
+                        255
+                    ];
+                foreach (var r in values)
+                {
+                    foreach (var g in values)
+                    {
+                        foreach (var b in values)
+                        {
+                            // N.B. the API refuses to fill a cell with black if its font is black
+                            // so the very first cell won't be colored.
+                            var backgroundColor = ClosedXML.Excel.XLColor.FromArgb(0, r, g, b);
+                            var fontColor = ClosedXML.Excel.XLColor.FromArgb(0, b, r, g);
+                            var borderColor = ClosedXML.Excel.XLColor.FromArgb(0, g, b, r);
+                            yield return Cell([
+                                String($"R={r};G={g};B={b}"),
+                                FontColor(fontColor),
+                                BackgroundColor(backgroundColor),
+                                Border(Top(XLBorderStyleValues.Thick)),
+                                Border(Right(XLBorderStyleValues.Thick)),
+                                Border(Bottom(XLBorderStyleValues.Thick)),
+                                Border(Left(XLBorderStyleValues.Thick)),
+                                BorderColor(BorderColorFactory.Top(borderColor)),
+                                BorderColor(BorderColorFactory.Right(borderColor)),
+                                BorderColor(BorderColorFactory.Bottom(borderColor)),
+                                BorderColor(BorderColorFactory.Left(borderColor))
+                            ]);
+                        }
+                        yield return Go(PositionFactory.NewRow);
+                    }
+                    yield return Go(PositionFactory.NewRow);
+                }
+            }
+            CsExcel.Render.AsFile(Items(), """c:\temp\Color.xlsx""");
         }
     }
 }
