@@ -5,6 +5,14 @@ VisualStudioVersion = 17.10.35122.118
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "CsExcel", "CsExcel\CsExcel.fsproj", "{D9724984-D8C8-4991-A176-1FD4D43A95DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{16A566D5-6CFF-4EDC-837B-C531E1E22B3B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{9976E8BC-0434-41B6-A3E2-C60DF4B8F93D}"
+	ProjectSection(SolutionItems) = preProject
+		LICENSE.txt = LICENSE.txt
+		README.md = README.md
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +23,10 @@ Global
 		{D9724984-D8C8-4991-A176-1FD4D43A95DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D9724984-D8C8-4991-A176-1FD4D43A95DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D9724984-D8C8-4991-A176-1FD4D43A95DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16A566D5-6CFF-4EDC-837B-C531E1E22B3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16A566D5-6CFF-4EDC-837B-C531E1E22B3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16A566D5-6CFF-4EDC-837B-C531E1E22B3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16A566D5-6CFF-4EDC-837B-C531E1E22B3B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

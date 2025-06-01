@@ -6,7 +6,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Library.fs" />
+    <Compile Include="Vanilla.fs" />
+    <Compile Include="Fluent.fs" />
   </ItemGroup>
 
   <ItemGroup>

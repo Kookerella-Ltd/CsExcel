@@ -19,3 +19,28 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+Of course! Here's a Contributor License Agreement (CLA) template that ensures you retain the right to change the license in the future:
+
+---
+
+**Contributor License Agreement (CLA)**  
+Version [1.0] – [2025/06/01]  
+
+### **1. Grant of Rights**  
+By submitting contributions (code, documentation, or other materials) to the CsExcel repository, you (the "Contributor") grant the Kookerella Ltd a **perpetual, worldwide, non-exclusive, irrevocable** license to use, modify, distribute, and sublicense your contributions under the project’s current or future licenses.  
+
+### **2. License Flexibility**  
+Kookerella Ltd retains the right to change, update, or relicense the project under different terms in the future, including commercial licensing. Contributors agree that their contributions remain bound by the updated license without requiring explicit additional permission.  
+
+### **3. Ownership & Copyright**  
+- The Contributor affirms they have the legal right to submit the contribution.  
+- The Contributor retains ownership of their work but grants the project owner full rights to relicense and modify it.  
+
+### **4. No Warranties**  
+All contributions are provided "as-is," without warranties or guarantees of any kind.  
+
+### **5. Acceptance of Terms**  
+By submitting a pull request or any contribution to the project, the Contributor agrees to these terms.  
+
+---
