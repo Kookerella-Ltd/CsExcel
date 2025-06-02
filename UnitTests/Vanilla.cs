@@ -20,6 +20,10 @@ using static FsExcel.Item;
 using static FsExcel.Position;
 using System;
 using static FsExcel.CellProp;
+using static FsExcel.CellLabel;
+using static CsExcel.CellLabelFactory;
+using static CsExcel.StyleMergedCellFactory;
+//using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace UnitTests
 {
@@ -372,7 +376,7 @@ namespace UnitTests
             CsExcel.Render.AsFile(Items(), """c:\temp\Formulae.xlsx""");
         }
         [Fact]
-        void Color()
+        public void Color()
         {
             IEnumerable<Item> Items()
             {
@@ -412,6 +416,187 @@ namespace UnitTests
                 }
             }
             CsExcel.Render.AsFile(Items(), """c:\temp\Color.xlsx""");
+        }
+        [Fact]
+        public void RangeStyles()
+        {
+            IEnumerable<Item> Items()
+            {
+                yield return Style([
+                        Border(Bottom(XLBorderStyleValues.Medium)),
+                        FontEmphasis(Bold),
+                        FontEmphasis(Italic)
+                    ]);
+                foreach (var heading in new[] { "Stock Item", "Price", "Count" })
+                {
+                    yield return Cell([String(heading)]);
+                }
+                yield return Go(PositionFactory.NewRow);
+                foreach (var item in new[] { "Apples", "Oranges", "Pears" })
+                {
+                    yield return Cell([String(item)]);
+                    yield return Style([CellPropFactory.FontEmphasis(Italic)]);
+                    yield return Cell([Float(RandomGenerator.NextDouble() * 1000), FormatCode("$0.00")]);
+                    yield return Cell([Integer((int)(RandomGenerator.NextDouble() * 100)), FormatCode("#,##0")]);
+                    yield return Style([]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+            };
+            CsExcel.Render.AsFile(Items(), """c:\temp\RangeStyles.xlsx""");
+        }
+        [Fact]
+        public void AddingABorderToMergedCells()
+        {
+            IEnumerable<Item> Items()
+            {
+                yield return Go(PositionFactory.NewRow);
+                foreach (var (heading, colWidth) in new[] { ("ID", 3.22), ("Car Name", 10.33), ("Car Description", 49.33), ("Car Registration", 16.89) })
+                {
+                    yield return Cell([
+                        String(heading),
+                        FontEmphasis(Bold),
+                        FontName("Calibri"),
+                        FontSize(11),
+                        HorizontalAlignment(Center),
+                        FontColor(XLColor.FromArgb(0, 255, 255, 255)),
+                        BackgroundColor(XLColor.FromArgb(0, 68, 114, 196)),
+                        Border(All(Thin)),
+                        CellSize(ColWidth(colWidth))
+                    ]);
+                }
+                yield return Go(PositionFactory.NewRow);
+                yield return Style([
+                    HorizontalAlignment(Center),
+                    VerticalAlignment(VerticalAlignmentFactory.Middle),
+                    BackgroundColor(XLColor.FromArgb(0, 240, 240, 210))
+                ]);
+                yield return Cell([Integer(1), Name("ID")]);
+                yield return Cell([String("Ford Fiesta")]);
+                yield return Cell([String("Car Technical Details:"), Next(DownBy(1))]);
+                yield return Cell([String("Technical Detail 1"), Next(DownBy(1))]);
+                yield return Cell([String("Technical Detail 2"), Next(DownBy(1))]);
+                yield return Cell([String("Technical Detail 3"), Name("LastL")]);
+                yield return Go(RC(3, 4));
+                yield return Cell([String("AB12 CDE"), Name("Reg")]);
+                yield return Go(RC(6, 4));
+                yield return Cell([Name("RegEnd")]);
+                yield return Go(RC(7, 3));
+                yield return Cell([String("Another Technical Detail"), FontEmphasis(Italic), Name("TD"), Next(Position.Stay)]);
+                yield return Go(DownBy(1));
+                yield return Cell([Name("info")]);
+                yield return MergeCells(ColRowLabel("B", 3), ColRowLabel("B", 6));
+                yield return MergeCells(NamedCell("ID"), ColRowLabel("A", 6));
+                yield return MergeCells(ColRowLabel("C", 7), NamedCell("info"));
+                yield return MergeCells(NamedCell("Reg"), NamedCell("RegEnd"));
+                yield return BorderMergedCell([
+                    BorderType(All(Thin)),
+                    ColorBorder(BorderColorFactory.All(XLColor.FromArgb(0, 68, 114, 196)))
+                ]);
+            };
+            CsExcel.Render.AsFile(Items(), """c:\temp\AddingABorderToMergedCells.xlsx""");
+        }
+        [Fact]
+        public void AbsolutePositioning()
+        {
+            var items =
+                new[] {
+                    Go(Col(3)),
+                    Cell([String("Col 3")]),
+                    Go(Row(4)),
+                    Cell([String("Row 4")]),
+                    Go(RC(6, 5)),
+                    Cell([String("R6C5")]),
+                    Cell([String("R6C6")])
+                };
+            CsExcel.Render.AsFile(items, """c:\temp\AbsolutePositioning.xlsx""");
+        }
+        [Fact]
+        public void AbsolutePositionin2()
+        {
+            IEnumerable<Item> Items()
+            {
+                foreach (var i in Enumerable.Range(1, 5))
+                {
+                    yield return Cell([Integer(i), Next(PositionFactory.Stay)]);
+                    yield return Go(DownBy(i));
+                }
+            }
+            CsExcel.Render.AsFile(Items(), """c:\temp\AbsolutePositioning2.xlsx""");
+        }
+        [Fact]
+        public void NamedCells()
+        {
+            var items = new[]
+            {
+                Cell([
+                    String("JohnDoe"),
+                    Name("Username"),
+                ]),
+                Cell([
+                    String("john.doe@company.com"),
+                    CellPropFactory.ScopedName("Email",NameScope.Workbook),
+                ])
+            };
+            CsExcel.Render.AsFile(items, """c:\temp\NamedCells.xlsx""");
+        }
+        [Fact]
+        public void WorksheetsTabs()
+        {
+            var britishCultureNativeName = "English (United Kingdom)";
+            var ukrainianCultureNativeName = "українська";
+            var britishCultureDateTimeFormatGetMonthName =
+                new[] { "January", "February", "March", "April", "May", "June", "July",
+                        "August", "September", "October", "November", "December" };
+            var britishCultureDateTimeFormatAbbreviatedMonthNames = 
+                new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
+                        "Nov", "Dec" };
+            var ukrainianCultureDateTimeFormatGetMonthName =
+                new[] { "січень", "лютий", "березень", "квітень", "травень", "червень",
+                        "липень", "серпень", "вересень", "жовтень", "листопад", "грудень" };
+            var ukrainianCultureDateTimeFormatAbbreviatedMonthNames =
+                new[] { "січ", "лют", "бер", "кві", "тра", "чер", "лип", "сер", "вер", "жов",
+                        "лис", "гру" };
+            IEnumerable<Item> Items()
+            {
+                yield return Worksheet(britishCultureNativeName);
+                foreach (var m in Enumerable.Range(0, 11))
+                {
+                    var monthName = britishCultureDateTimeFormatGetMonthName[m];
+                    yield return Cell([String(monthName)]);
+                    yield return Cell([Integer(monthName.Length)]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+
+                yield return Worksheet(ukrainianCultureNativeName);
+                foreach (var m in Enumerable.Range(0, 11))
+                {
+                    var monthName = ukrainianCultureDateTimeFormatGetMonthName[m];
+                    yield return Cell([String(monthName)]);
+                    yield return Cell([Integer(monthName.Length)]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+
+                yield return Worksheet(britishCultureNativeName); // Switch back to the first worksheet
+                yield return Go(RC(13, 1));
+                foreach (var m in Enumerable.Range(0, 11))
+                {
+                    var monthAbbreviation = britishCultureDateTimeFormatAbbreviatedMonthNames[m];
+                    yield return Cell([String(monthAbbreviation)]);
+                    yield return Cell([Integer(monthAbbreviation.Length)]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+
+                yield return Worksheet(ukrainianCultureNativeName); // Switch back to the second worksheet
+                yield return Go(RC(13, 1));
+                foreach (var m in Enumerable.Range(0, 11))
+                {
+                    var monthAbbreviation = ukrainianCultureDateTimeFormatAbbreviatedMonthNames[m];
+                    yield return Cell([String(monthAbbreviation)]);
+                    yield return Cell([Integer(monthAbbreviation.Length)]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+            };
+            CsExcel.Render.AsFile(Items(), """c:\temp\WorksheetsTabs.xlsx""");
         }
     }
 }

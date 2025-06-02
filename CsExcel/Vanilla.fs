@@ -2,6 +2,7 @@
 
 open FsExcel
 open System
+open ClosedXML.Excel
 //open System.Runtime.CompilerServices
 //open DiffList
 
@@ -98,12 +99,22 @@ open System
 //    member _.FreezePanes(freezePanes) = 
 //        Item.FreezePanes freezePanes
 
-module BorderColorFactory = 
-    let Top = BorderColor.Top
-    let Right = BorderColor.Right
-    let Bottom = BorderColor.Bottom
-    let Left = BorderColor.Left
-    let All = BorderColor.All
+module BorderColorFactory =
+    let Top(color : XLColor) = BorderColor.Top color
+    let Right(color : XLColor) = BorderColor.Right color
+    let Bottom(color : XLColor) = BorderColor.Bottom color
+    let Left(color : XLColor) = BorderColor.Left color
+    let All(color : XLColor) = BorderColor.All color
+
+module StyleMergedCellFactory = 
+    let BorderType(border : Border) = BorderType border
+    let ColorBorder(color : BorderColor) = ColorBorder color
+
+
+module CellLabelFactory =
+    let ColRowLabel(col,row) = CellLabel.ColRowLabel(col,row)
+    let NamedCell(name) = CellLabel.NamedCell name
+    let SpanDepth(colSpan,rowDepth) = CellLabel.SpanDepth(colSpan,rowDepth)
 
 module HorizontalAlignmentFactory = 
     let Left = HorizontalAlignment.Left
