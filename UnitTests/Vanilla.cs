@@ -6,21 +6,11 @@ using static CsExcel.CellPropFactory;
 using static CsExcel.BorderFactory;
 using static CsExcel.FontEmphasisFactory;
 using static CsExcel.HorizontalAlignmentFactory;
-using static CsExcel.VerticalAlignmentFactory;
 using static CsExcel.SizeFactory;
 using System.Globalization;
 using static ClosedXML.Excel.XLBorderStyleValues;
 using static ClosedXML.Excel.XLFontUnderlineValues;
-using System.Runtime.CompilerServices;
-using Microsoft.FSharp.Control;
-using DocumentFormat.OpenXml.Bibliography;
-using static FsExcel.Size;
 using ClosedXML.Excel;
-using static FsExcel.Item;
-using static FsExcel.Position;
-using System;
-using static FsExcel.CellProp;
-using static FsExcel.CellLabel;
 using static CsExcel.CellLabelFactory;
 using static CsExcel.StyleMergedCellFactory;
 //using DocumentFormat.OpenXml.Spreadsheet;
@@ -539,15 +529,15 @@ namespace UnitTests
             };
             CsExcel.Render.AsFile(items, """c:\temp\NamedCells.xlsx""");
         }
-        [Fact]
-        public void WorksheetsTabs()
+
+        static IEnumerable<Item> MakeWorksheetTabsItems()
         {
             var britishCultureNativeName = "English (United Kingdom)";
             var ukrainianCultureNativeName = "українська";
             var britishCultureDateTimeFormatGetMonthName =
                 new[] { "January", "February", "March", "April", "May", "June", "July",
                         "August", "September", "October", "November", "December" };
-            var britishCultureDateTimeFormatAbbreviatedMonthNames = 
+            var britishCultureDateTimeFormatAbbreviatedMonthNames =
                 new[] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct",
                         "Nov", "Dec" };
             var ukrainianCultureDateTimeFormatGetMonthName =
@@ -596,7 +586,62 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             };
-            CsExcel.Render.AsFile(Items(), """c:\temp\WorksheetsTabs.xlsx""");
+
+            return Items();
+        }
+
+        [Fact]
+        public void WorksheetsTabs()
+        {
+            CsExcel.Render.AsFile(MakeWorksheetTabsItems(), """c:\temp\WorksheetsTabs.xlsx""");
+        }
+        [Fact]
+        public void InsertingBlankRows()
+        {
+            // you can load an existing file
+            // var workbook = new XLWorkbook(Path.Combine(savePath, "Worksheets.xlsx"))
+            var workbook = CsExcel.Render.AsWorkBook(MakeWorksheetTabsItems());
+            var britishCultureNativeName = "English (United Kingdom)";
+            var ukrainianCultureNativeName = "українська";
+            var altMonthNames = new[]
+            {
+                "Vintagearious", "Fogarious", "Frostarious", "Snowous", "Rainous",
+                "Windous", "Buddal", "Floweral", "Meadowal", "Reapidor", "Heatidor", "Fruitidor"
+            };
+            IEnumerable<Item> Items()
+            {
+                yield return Workbook(workbook);
+                yield return Worksheet(ukrainianCultureNativeName);
+                yield return Go(RC(1, 3));
+                yield return Cell([FormulaA1($"='{britishCultureNativeName}'!B1*2")]);
+                yield return Worksheet(britishCultureNativeName);
+                yield return InsertRowsAbove(12); // The cell reference in the formula above will be updated to B13
+                for (var m = 0; m < 12; m++)
+                {
+                    yield return Cell([String(altMonthNames[m])]);
+                    yield return Cell([Integer(altMonthNames[m].Length)]);
+                    yield return Go(PositionFactory.NewRow);
+                }
+            }
+            CsExcel.Render.AsFile(Items(), """c:\temp\InsertingBlankRows.xlsx""");
+        }
+        [Fact]
+        public void ColumnWidthsAndRowHeightsForAllCells()
+        {
+            IEnumerable<Item> Items()
+            {
+                for (var x = 1; x <= 12; x++)
+                {
+                    for (var y = 0; y <= 12; y++)
+                    {
+                        yield return Cell([Integer(x * y)]);
+                    }
+                    yield return Go(PositionFactory.NewRow);
+                }
+                yield return SizeAll(ColWidth(5));
+                yield return SizeAll(RowHeight(20));
+            }
+            CsExcel.Render.AsFile(Items(), """c:\temp\ColumnWidthsAndRowHeightsForAllCells.xlsx""");
         }
     }
 }

@@ -224,6 +224,23 @@ module Render =
         cells
         |> Seq.toList
         |> FsExcel.Render.AsFile path
+    let AsHtml(cells : Item seq,isHeader) =
+        cells
+        |> Seq.toList
+        |> FsExcel.Render.AsHtml isHeader
+    let AsStream(cells : Item seq,stream) =
+        cells
+        |> Seq.toList
+        |> FsExcel.Render.AsStream stream
+    let AsStreamBytes(cells : Item seq) =
+        cells
+        |> Seq.toList
+        |> FsExcel.Render.AsStreamBytes
+    let AsWorkBook(cells : Item seq) =
+        cells
+        |> Seq.toList
+        |> FsExcel.Render.AsWorkBook
+
     
 //[<Extension>]
 //type ItemArrayExtensions =
