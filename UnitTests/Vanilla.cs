@@ -13,6 +13,12 @@ using static ClosedXML.Excel.XLFontUnderlineValues;
 using ClosedXML.Excel;
 using static CsExcel.CellLabelFactory;
 using static CsExcel.StyleMergedCellFactory;
+using static FsExcel.Item;
+using System.Runtime.InteropServices;
+using DocumentFormat.OpenXml.Bibliography;
+using DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Math;
+using static FsExcel.Size;
 //using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace UnitTests
@@ -471,7 +477,7 @@ namespace UnitTests
                 yield return Go(RC(6, 4));
                 yield return Cell([Name("RegEnd")]);
                 yield return Go(RC(7, 3));
-                yield return Cell([String("Another Technical Detail"), FontEmphasis(Italic), Name("TD"), Next(Position.Stay)]);
+                yield return Cell([String("Another Technical Detail"), FontEmphasis(Italic), Name("TD"), Next(FsExcel.Position.Stay)]);
                 yield return Go(DownBy(1));
                 yield return Cell([Name("info")]);
                 yield return MergeCells(ColRowLabel("B", 3), ColRowLabel("B", 6));
@@ -642,6 +648,285 @@ namespace UnitTests
                 yield return SizeAll(RowHeight(20));
             }
             CsExcel.Render.AsFile(Items(), """c:\temp\ColumnWidthsAndRowHeightsForAllCells.xlsx""");
+        }
+        [Fact]
+        public void IndividualCellSizing()
+        {
+            IEnumerable<Item> Items()
+            {
+                yield return Go(PositionFactory.NewRow);
+                foreach (var (heading, colWidth) in new (string, double)[]
+                    {
+                        ("ID", 3.22),
+                        ("Car Name", 10.33),
+                        ("Car Descriptions", 49.33),
+                        ("Car Registration", 16.89),
+                    })
+                {
+                    yield return Cell(
+                        [
+                            String(heading),
+                            FontEmphasis(Bold),
+                            FontName("Calibri"),
+                            FontSize(11),
+                            HorizontalAlignment(Center),
+                            FontColor(XLColor.FromArgb(0,255,255,255)),
+                            BackgroundColor(XLColor.FromArgb(0,68,114,196)),
+                            Border(All(Thin)),
+                            CellSize(ColWidth(colWidth)),
+                        ]);
+                }
+                yield return Go(PositionFactory.NewRow);
+                yield return Cell([Integer(1), HorizontalAlignment(Center)]);
+                yield return Cell([String("Ford Fiesta")]);
+                yield return Cell([String("Car Technical Details...")]);
+                yield return Cell([String("AB12 CDE"), HorizontalAlignment(Center)]);
+            }
+            CsExcel.Render.AsFile(Items(), """c:\temp\IndividualCellSizing.xlsx""");
+        }
+        [Fact]
+        public void Autofitting()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                LoadOptions.DefaultGraphicEngine = new ClosedXML.Graphics.DefaultGraphicEngine("Liberation Sans");
+            }
+            CellProp[] headingStyle = [
+                    Border(Bottom(XLBorderStyleValues.Medium)),
+                    FontEmphasis(Bold),
+                    FontEmphasis(Italic),
+                ];
+            IEnumerable<Item> Items() 
+            {
+                foreach(var heading in new[] { "Month", "Letter Count"})
+                {
+                    yield return Cell([String(heading),..headingStyle]);
+                }
+                yield return Go(NewRow);
+                for (var m = 1; m <= 12; m++)
+                {
+                    var monthName = CultureInfo.GetCultureInfoByIetfLanguageTag("en-GB").DateTimeFormat.GetMonthName(m);
+                    yield return Cell([String(monthName)]);
+                    yield return Cell([Integer(monthName.Length)]);
+                    yield return Go(NewRow);
+                }
+                yield return AutoFit(AutoFitFactory.AllCols);
+            }
+            CsExcel.Render.AsFile(Items(), """c:\temp\Autofitting.xlsx""");
+        }
+        [Fact]
+        void MergingCellsAndVerticalAlignment()
+        {
+            IEnumerable<Item> Items()
+            {
+                yield return Go(NewRow);
+                foreach (var (heading, colWidth) in new (string, double)[]
+                    {
+                        ("ID", 3.22),
+                        ("Car Name", 10.33),
+                        ("Car Descriptions", 49.33),
+                        ("Car Registration", 16.89),
+                    })
+                {
+                    yield return Cell(
+                        [
+                            String(heading),
+                            FontEmphasis(Bold),
+                            FontName("Calibri"),
+                            FontSize(11),
+                            HorizontalAlignment(Center),
+                            FontColor(XLColor.FromArgb(0,255,255,255)),
+                            BackgroundColor(XLColor.FromArgb(0,68,114,196)),
+                            Border(All(Thin)),
+                            CellSize(ColWidth(colWidth)),
+                        ]);
+                }
+                yield return Go(NewRow);
+                yield return Cell([Integer(1),
+                        HorizontalAlignment(HorizontalAlignmentFactory.Left),
+                        VerticalAlignment(VerticalAlignmentFactory.TopMost),
+                        Name("ID")]);
+
+                yield return Cell([String("Ford Fiesta"),
+                        HorizontalAlignment(Center),
+                        VerticalAlignment(VerticalAlignmentFactory.Middle)]);
+                yield return Cell([String("Car Technical Details:"),
+                        Next(DownBy(1))]);
+                yield return Cell([String("Technical Detail 1"),
+                        Next(DownBy(1))]);
+                yield return Cell([String("Technical Detail 2"),
+                        Next(DownBy(1))]);
+                yield return Cell([String("Technical Detail 3"),
+                        Name("LastL")]);
+                yield return Go(RC(3, 4));
+                yield return Cell([  String("AB12 CDE"),
+                            HorizontalAlignment(HorizontalAlignmentFactory.Right),
+                            VerticalAlignment(VerticalAlignmentFactory.Base),
+                            Name("Reg") ]);
+                yield return Go(RC(6, 4));
+                yield return Cell([Name("RegEnd")]);
+                yield return Go(RC(7, 3));
+                yield return Cell([String("Another Technical Detail"),
+                        FontEmphasis(Italic),
+                        VerticalAlignment(VerticalAlignmentFactory.Middle),
+                        Name("TD"),
+                        Next(Stay)]);
+                yield return Go(DownBy(1));
+                yield return Cell([Name("info")]);
+                // Merging between named and specific cells
+                yield return MergeCells(ColRowLabel("B", 3), ColRowLabel("B", 6));
+                yield return MergeCells(NamedCell("ID"), ColRowLabel ("A", 6));
+                yield return MergeCells(ColRowLabel("C", 7), NamedCell("info"));
+                yield return MergeCells(NamedCell("Reg"), NamedCell("RegEnd"));
+                yield return Go(RC(10, 1));
+                //    Cell [  String "Merging from a starting cell given a depth and span"
+                //            BackgroundColor (XLColor.FromArgb(0, 80, 180, 220))
+                //            FontEmphasis Bold
+                //            HorizontalAlignment Center ] 
+                //    MergeCells ((ColRowLabel ("A", 10), ColRowLabel ("D", 10)))
+
+                //    Go (RC (12, 2))
+                //    Cell [  String "The components that make up a car are: "
+                //            Name "components" 
+                //            HorizontalAlignment Left
+                //            VerticalAlignment TopMost
+                //            Border(Border.All XLBorderStyleValues.MediumDashDot)]
+                //    Go (RC (12, 4))
+                //    Cell [ Border(Border.All XLBorderStyleValues.MediumDashDot)]
+                //    Go (RC (14, 4))
+                //    Cell [ Border(Border.All XLBorderStyleValues.MediumDashDot)]
+
+                //    Go (RC (15, 2))
+                //    Cell [  String "Road Tax"
+                //            HorizontalAlignment Center
+                //            VerticalAlignment Middle
+                //            Border(Border.All XLBorderStyleValues.SlantDashDot)]
+                //    Go (RC (16, 2))
+                //    Cell [ Border(Border.All XLBorderStyleValues.SlantDashDot)]
+
+                //    // Forward merging - cell name, cell contents, shading & top LH corner of border are retained
+                //    MergeCells ((NamedCell "components", SpanDepth (3, 3)))
+                //    MergeCells ((ColRowLabel ("B", 15), SpanDepth (1, 2))) 
+
+                //    Go (RC (17, 4))
+                //    Cell [  String "Insurance"
+                //            Name "insurance" // NamedCells cannot begin with a number
+                //            Border(Border.All XLBorderStyleValues.Dashed) ]
+                //    Go (RC (17, 3))
+                //    Cell [ Border(Border.All XLBorderStyleValues.Dashed)]
+                //    Go (RC (17, 2))
+                //    Cell [ Border(Border.All XLBorderStyleValues.Dashed)] 
+
+                //    Go (RC (16, 4))
+                //    Cell [  String "Signature"]
+
+                //    // Reverse Merging - original cell contents, cell name and cell shading are lost
+                //    // Only bottom RH corner of the border is retained
+                //    MergeCells ((SpanDepth (3, 1), NamedCell "insurance")) 
+                //    MergeCells ((SpanDepth (2, 2), ColRowLabel ("D", 16)))
+
+
+            }
+
+            //[   Go NewRow
+            //    for heading, colWidth in ["ID", 3.22; "Car Name", 10.33; "Car Description", 49.33; "Car Registration", 16.89 ] do
+            //        Cell [
+            //            String heading
+            //            FontEmphasis Bold
+            //            FontName "Calibri"
+            //            FontSize 11
+            //            HorizontalAlignment Center
+            //            FontColor (XLColor.FromArgb(0, 255, 255, 255))
+            //            BackgroundColor (XLColor.FromArgb(0, 68, 114, 196))
+            //            Border(Border.All XLBorderStyleValues.Thin)
+            //            CellSize (ColWidth colWidth)
+            //        ]
+            //    Go NewRow
+            //    Cell [  Integer 1
+            //            HorizontalAlignment Left
+            //            VerticalAlignment TopMost
+            //            Name "ID" ] 
+            //    Cell [  String "Ford Fiesta"
+            //            HorizontalAlignment Center
+            //            VerticalAlignment Middle ] 
+            //    Cell [  String "Car Technical Details:"
+            //            Next (DownBy 1) ]
+            //    Cell [  String "Technical Detail 1"
+            //            Next (DownBy 1) ]
+            //    Cell [  String "Technical Detail 2"
+            //            Next (DownBy 1)]
+            //    Cell [  String "Technical Detail 3"
+            //            Name "LastL" ]
+            //    Go (RC (3, 4))
+            //    Cell [  String "AB12 CDE" 
+            //            HorizontalAlignment Right
+            //            VerticalAlignment Base
+            //            Name "Reg" ]
+            //    Go (RC (6, 4))
+            //    Cell [Name "RegEnd"]
+            //    Go (RC (7, 3))
+            //    Cell [  String "Another Technical Detail"
+            //            FontEmphasis Italic
+            //            VerticalAlignment Middle
+            //            Name "TD" 
+            //            Next Stay]
+            //    Go (DownBy 1)
+            //    Cell [ Name "info"]
+
+            //    // Merging between named and specific cells
+            //    MergeCells ((ColRowLabel ("B", 3), ColRowLabel ("B", 6)))
+            //    MergeCells ((NamedCell "ID", ColRowLabel ("A", 6)))
+            //    MergeCells ((ColRowLabel ("C", 7), NamedCell "info")) 
+            //    MergeCells ((NamedCell "Reg", NamedCell "RegEnd")) 
+
+            //    Go (RC (10, 1))
+            //    Cell [  String "Merging from a starting cell given a depth and span"
+            //            BackgroundColor (XLColor.FromArgb(0, 80, 180, 220))
+            //            FontEmphasis Bold
+            //            HorizontalAlignment Center ] 
+            //    MergeCells ((ColRowLabel ("A", 10), ColRowLabel ("D", 10)))
+
+            //    Go (RC (12, 2))
+            //    Cell [  String "The components that make up a car are: "
+            //            Name "components" 
+            //            HorizontalAlignment Left
+            //            VerticalAlignment TopMost
+            //            Border(Border.All XLBorderStyleValues.MediumDashDot)]
+            //    Go (RC (12, 4))
+            //    Cell [ Border(Border.All XLBorderStyleValues.MediumDashDot)]
+            //    Go (RC (14, 4))
+            //    Cell [ Border(Border.All XLBorderStyleValues.MediumDashDot)]
+
+            //    Go (RC (15, 2))
+            //    Cell [  String "Road Tax"
+            //            HorizontalAlignment Center
+            //            VerticalAlignment Middle
+            //            Border(Border.All XLBorderStyleValues.SlantDashDot)]
+            //    Go (RC (16, 2))
+            //    Cell [ Border(Border.All XLBorderStyleValues.SlantDashDot)]
+
+            //    // Forward merging - cell name, cell contents, shading & top LH corner of border are retained
+            //    MergeCells ((NamedCell "components", SpanDepth (3, 3)))
+            //    MergeCells ((ColRowLabel ("B", 15), SpanDepth (1, 2))) 
+
+            //    Go (RC (17, 4))
+            //    Cell [  String "Insurance"
+            //            Name "insurance" // NamedCells cannot begin with a number
+            //            Border(Border.All XLBorderStyleValues.Dashed) ]
+            //    Go (RC (17, 3))
+            //    Cell [ Border(Border.All XLBorderStyleValues.Dashed)]
+            //    Go (RC (17, 2))
+            //    Cell [ Border(Border.All XLBorderStyleValues.Dashed)] 
+
+            //    Go (RC (16, 4))
+            //    Cell [  String "Signature"]
+
+            //    // Reverse Merging - original cell contents, cell name and cell shading are lost
+            //    // Only bottom RH corner of the border is retained
+            //    MergeCells ((SpanDepth (3, 1), NamedCell "insurance")) 
+            //    MergeCells ((SpanDepth (2, 2), ColRowLabel ("D", 16)))
+            //]
+            //|> Render.AsFile (Path.Combine(savePath, "MergeCellsWithVerticalAlignment.xlsx"))
         }
     }
 }

@@ -99,6 +99,20 @@ open ClosedXML.Excel
 //    member _.FreezePanes(freezePanes) = 
 //        Item.FreezePanes freezePanes
 
+//type AutoFit =
+//    | All
+//    | ColRange of int * int
+//    | RowRange of int * int
+//    | AllCols
+//    | AllRows
+
+module AutoFitFactory = 
+    let All = AutoFit.All
+    let ColRange = AutoFit.ColRange
+    let RowRange = AutoFit.RowRange
+    let AllCols = AutoFit.AllCols
+    let AllRows = AutoFit.AllRows
+
 module BorderColorFactory =
     let Top(color : XLColor) = BorderColor.Top color
     let Right(color : XLColor) = BorderColor.Right color
