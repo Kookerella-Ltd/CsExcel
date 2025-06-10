@@ -3,6 +3,7 @@
 open FsExcel
 open System
 open ClosedXML.Excel
+open FsExcel.Table
 //open System.Runtime.CompilerServices
 //open DiffList
 
@@ -170,6 +171,28 @@ module PositionFactory =
     let NewRow = Position.NewRow
     let Stay = Position.Stay
 
+module Table =
+    module DirectionFactory = 
+        let Vertical = Table.Direction.Vertical 
+        let Horizontal = Table.Direction.Horizontal
+
+    type CellStyleGetterDelegate = delegate of int * string -> CellProp seq
+    
+    let fromInstance<'T>(x : 'T,direction : Direction,getCellStyle : CellStyleGetterDelegate) =
+    // this is a placeholder implementation, because the underlying functionality assumes the type is an F# type.
+        failwithf "fromInstance is not implemented yet %A" typeof<'T>
+        x
+        |> Table.fromInstance<'T> direction (fun i s -> getCellStyle.Invoke(i,s) |> Seq.toList)
+        |> List.toSeq
+
+    type CellStyleGetterSeqDelegate = delegate of int * string -> CellProp seq
+
+    let fromIEnumerable<'T>(xs : 'T seq,direction : Direction,getCellStyle : CellStyleGetterSeqDelegate) = 
+    // this is a placeholder implementation, because the underlying functionality assumes the type is an F# type.
+        xs
+        |> Table.fromSeq<'T> direction (fun i s -> getCellStyle.Invoke(i,s) |> Seq.toList)
+        |> List.toSeq
+
 module CellPropFactory = 
     let String(s : string) = CellProp.String s
     let Float(f : float) = CellProp.Float f
@@ -238,10 +261,11 @@ module Render =
         cells
         |> Seq.toList
         |> FsExcel.Render.AsFile path
-    let AsHtml(cells : Item seq,isHeader) =
+    type IsHeader = delegate of int * int -> bool
+    let AsHtml(cells : Item seq,isHeader : IsHeader) =
         cells
         |> Seq.toList
-        |> FsExcel.Render.AsHtml isHeader
+        |> FsExcel.Render.AsHtml (fun x y -> isHeader.Invoke(x,y));
     let AsStream(cells : Item seq,stream) =
         cells
         |> Seq.toList

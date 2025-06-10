@@ -15,11 +15,6 @@ using static CsExcel.CellLabelFactory;
 using static CsExcel.StyleMergedCellFactory;
 using static FsExcel.Item;
 using System.Runtime.InteropServices;
-using DocumentFormat.OpenXml.Bibliography;
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Math;
-using static FsExcel.Size;
-//using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace UnitTests
 {
@@ -820,77 +815,162 @@ namespace UnitTests
             }
             CsExcel.Render.AsFile(Items(), """c:\temp\MergeCellsWithVerticalAlignment.xlsx""");
         }
+
+        record JoiningInfo(string Name, int Age, decimal Fees, string DateJoined);
+
         //Tables from Records
         [Fact]
         void TablesFromRecords()
         {
+            // this functionality doesnt work because FsExcel assumes the types are F# record types
 
+            //var records = new[] {
+            //    new { Name = "Jane Smith", Age = 32, Fees= 59.25m, DateJoined = "2022-03-12" }, // Excel will treat these strings as dates
+            //    new { Name = "Michael Nguyễn", Age = 23, Fees =61.2m, DateJoined = "2022-03-13" },
+            //    new { Name = "Sofia Hernández",Age = 58, Fees = 59.25m, DateJoined = "2022-03-15" } };
 
-open System
-open System.IO
-open ClosedXML.Excel
-open FsExcel
+            //CellProp[] CellStyleVertical(int index, string name)
+            //{
+            //    if (index == 0)
+            //    {
+            //        return [ FontEmphasis(Bold) ];
+            //    }
+            //    else if (name == "Fees")
+            //    {
+            //        return [ FormatCode("$0.00") ];
+            //    }
+            //    else
+            //    {
+            //        return [];
+            //    }
+            //}
+            //CellProp[] CellStyleHorizontal(int index, string name)
+            //{
+            //    if (index == 0)
+            //    {
+            //        return [ Border(BorderFactory.Bottom(XLBorderStyleValues.Medium)), FontEmphasis(Bold) ];
+            //    }
+            //    else if (name == "Fees")
+            //    {
+            //        return [ FormatCode("$0.00") ];
+            //    }
+            //    else
+            //    {
+            //        return [];
+            //    }
+            //}
+            //var items = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Vertical,CellStyleVertical);
+            //CsExcel.Render.AsFile([.. items, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceVertical.xlsx""");
 
-type JoiningInfo = {
-    Name : string
-    Age : int
-    Fees : decimal
-    DateJoined : string
-}
+            //var items2 = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
+            //CsExcel.Render.AsFile([.. items2, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceHorizontal.xlsx""");
 
-// This works just as well if these are anonymous record instances,
-// eg. {| Name = "..."; ... |}
+            //foreach (var r in records.Take(1))
+            //{
+            //    var cellsVertical = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Vertical, CellStyleVertical);
+            //    CsExcel.Render.AsFile([.. cellsVertical, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceVertical.xlsx""");
 
-let records = [
-    { Name = "Jane Smith"; Age = 32; Fees = 59.25m; DateJoined = "2022-03-12" } // Excel will treat these strings as dates
-    { Name = "Michael Nguyễn"; Age = 23; Fees = 61.2m; DateJoined = "2022-03-13" }
-    { Name = "Sofia Hernández"; Age = 58; Fees = 59.25m; DateJoined = "2022-03-15" }
-]
+            //    var cellsHorizontal = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
+            //    CsExcel.Render.AsFile([.. cellsHorizontal, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceHorizontal.xlsx""");
+            //}
+        }
+        [Fact]
+        void RenderingInFableElmishOrSimilar()
+        {
+            var items = new Item[] { 
+                Cell([String("Hello world!")])            
+            };
+            var bytes = CsExcel.Render.AsStreamBytes(items);
+            Assert.Equal(6196,bytes.Length);
+        }
+        [Fact]
+        void DataTypes()
+        {
+            var items = new Item[] {
+                Cell([String("String")]),
+                Cell([String("string")]),
+                Go(NewRow),
+                Cell([String("Integer")]),
+                Cell([Integer(42)]),
+                Go(NewRow),
+                Cell([String("Number")]),
+                Cell([Float(Math.PI)]),
+                Go(NewRow),
+                Cell([String("Boolean")]),
+                Cell([Boolean(false)]),
+                Go(NewRow),
+                Cell([String("DateTime")]),
+                Cell([DateTime(new System.DateTime(1903, 12, 17))]),
+                Go(NewRow),
+                Cell([String("TimeSpan")]),
+                Cell([
+                    TimeSpan(new System.TimeSpan(hours: 1, minutes: 2, seconds: 3)),
+                    FormatCode("hh:mm:ss")
+                ]),
+            };
+            CsExcel.Render.AsFile(items, """c:\temp\DataTypes.xlsx""");
+        }
+        [Fact]
+        void RenderingAsHtml()
+        {
+            bool IsHeader(int r, int c) => r == 0 || c == 0;
+            var items = new Item[] {
+                Worksheet("Worksheet 1"),
+                Style([FontEmphasis(Bold)]),
+                Cell([String("Item")]),
+                Cell([String("Example")]),
+                Style([]),
+                Go(NewRow),
+                Cell([String("String")]),
+                Cell([String("string")]),
+                Go(NewRow),
+                Cell([String("Integer")]),
+                Cell([Integer(42)]),
+                Go(NewRow),
+                Cell([String("Number")]),
+                Cell([Float(Math.PI)]),
+                Go(NewRow),
+                Cell([String("Boolean")]),
+                Cell([Boolean(false)]),
+                Go(NewRow),
+                Cell([String("DateTime")]),
+                Cell([DateTime(new System.DateTime(1903, 12, 17))]),
+                Go(NewRow),
+                Cell([String("TimeSpan")]),
+                Cell([
+                    TimeSpan(new System.TimeSpan(hours: 1, minutes: 2, seconds: 3)),
+                    FormatCode("hh:mm:ss")
+                ]),
+                Go(NewRow),
+                Cell([String("Bold")]),
+                Cell([
+                    String("I am bold"),
+                    FontEmphasis(Bold)
+                ]),
+                Go(NewRow),
+                Cell([String("Italic")]),
+                Cell([
+                    String("I am Italic"),
+                    FontEmphasis(Italic)
+                ]),
+                Go(NewRow),
+                Cell([String("Underlined")]),
+                Cell([
+                    String("I am underlined"),
+                    FontEmphasis(Underline(XLFontUnderlineValues.Single))
+                ]),
+                Go(NewRow),
+                Worksheet("Worksheet 2"),
+                Cell([String("I am another table")]),
+            };
 
-let cellStyleVertical index name =
-    if index = 0 then
-        [ FontEmphasis Bold ]
-    elif name = "Fees" then
-        [ FormatCode "$0.00" ]
-    else
-        []
-
-let cellStyleHorizontal index name =
-    if index = 0 then
-        [
-            Border(Border.Bottom XLBorderStyleValues.Medium)
-            FontEmphasis Bold
-        ]
-    elif name = "Fees" then
-        [ FormatCode "$0.00" ]
-    else
-        []
-
-records
-|> Table.fromSeq Table.Direction.Vertical cellStyleVertical
-|> fun cells -> cells @ [ AutoFit All ]
-|> Render.AsFile (Path.Combine(savePath, "RecordSequenceVertical.xlsx"))
-
-records
-|> Table.fromSeq Table.Direction.Horizontal cellStyleHorizontal
-|> fun cells -> cells @ [ AutoFit All ]
-|> Render.AsFile (Path.Combine(savePath, "RecordSequenceHorizontal.xlsx"))
-
-records
-|> Seq.tryHead
-|> Option.iter (fun r ->
-
-    r 
-    |> Table.fromInstance Table.Direction.Vertical cellStyleVertical
-    |> fun cells -> cells @ [ AutoFit All ]
-    |> Render.AsFile (Path.Combine(savePath, "RecordInstanceVertical.xlsx"))
-
-    r 
-    |> Table.fromInstance Table.Direction.Horizontal cellStyleHorizontal
-    |> fun cells -> cells @ [ AutoFit All ]
-    |> Render.AsFile (Path.Combine(savePath, "RecordInstanceHorizontal.xlsx")))
-
-
+            var htmlString = CsExcel.Render.AsHtml(items, IsHeader);
+            // HTML(htmlString) can be used in notebook
+        }
+        [Fact]
+        void AutoFilters()
+        {
+            // not yet implemented
         }
     }
 }
