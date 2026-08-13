@@ -815,63 +815,63 @@ namespace UnitTests
             CsExcel.Render.AsFile(Items(), """c:\temp\MergeCellsWithVerticalAlignment.xlsx""");
         }
 
-        //record JoiningInfo(string Name, int Age, decimal Fees, string DateJoined);
+        record JoiningInfo(string Name, int Age, decimal Fees, string DateJoined);
 
-        //Tables from Records
+        // Tables from records/POCOs. FsExcel's own Table.fromInstance/fromSeq only work for F#
+        // record types; CsExcel.Table reimplements the same layout logic with plain reflection so
+        // it also works for C# classes, C# records (as used below) and anonymous types.
         [Fact]
         void TablesFromRecords()
         {
-            // this functionality doesnt work because FsExcel assumes the types are F# record types
+            var records = new[] {
+                new JoiningInfo("Jane Smith", 32, 59.25m, "2022-03-12"), // Excel will treat these strings as dates
+                new JoiningInfo("Michael Nguyễn", 23, 61.2m, "2022-03-13"),
+                new JoiningInfo("Sofia Hernández", 58, 59.25m, "2022-03-15") };
 
-            //var records = new[] {
-            //    new { Name = "Jane Smith", Age = 32, Fees= 59.25m, DateJoined = "2022-03-12" }, // Excel will treat these strings as dates
-            //    new { Name = "Michael Nguyễn", Age = 23, Fees =61.2m, DateJoined = "2022-03-13" },
-            //    new { Name = "Sofia Hernández",Age = 58, Fees = 59.25m, DateJoined = "2022-03-15" } };
+            CellProp[] CellStyleVertical(int index, string name)
+            {
+                if (index == 0)
+                {
+                    return [ FontEmphasis(Bold) ];
+                }
+                else if (name == "Fees")
+                {
+                    return [ FormatCode("$0.00") ];
+                }
+                else
+                {
+                    return [];
+                }
+            }
+            CellProp[] CellStyleHorizontal(int index, string name)
+            {
+                if (index == 0)
+                {
+                    return [ Border(BorderFactory.Bottom(XLBorderStyleValues.Medium)), FontEmphasis(Bold) ];
+                }
+                else if (name == "Fees")
+                {
+                    return [ FormatCode("$0.00") ];
+                }
+                else
+                {
+                    return [];
+                }
+            }
+            var items = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Vertical,CellStyleVertical);
+            CsExcel.Render.AsFile([.. items, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceVertical.xlsx""");
 
-            //CellProp[] CellStyleVertical(int index, string name)
-            //{
-            //    if (index == 0)
-            //    {
-            //        return [ FontEmphasis(Bold) ];
-            //    }
-            //    else if (name == "Fees")
-            //    {
-            //        return [ FormatCode("$0.00") ];
-            //    }
-            //    else
-            //    {
-            //        return [];
-            //    }
-            //}
-            //CellProp[] CellStyleHorizontal(int index, string name)
-            //{
-            //    if (index == 0)
-            //    {
-            //        return [ Border(BorderFactory.Bottom(XLBorderStyleValues.Medium)), FontEmphasis(Bold) ];
-            //    }
-            //    else if (name == "Fees")
-            //    {
-            //        return [ FormatCode("$0.00") ];
-            //    }
-            //    else
-            //    {
-            //        return [];
-            //    }
-            //}
-            //var items = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Vertical,CellStyleVertical);
-            //CsExcel.Render.AsFile([.. items, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceVertical.xlsx""");
+            var items2 = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
+            CsExcel.Render.AsFile([.. items2, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceHorizontal.xlsx""");
 
-            //var items2 = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
-            //CsExcel.Render.AsFile([.. items2, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceHorizontal.xlsx""");
+            foreach (var r in records.Take(1))
+            {
+                var cellsVertical = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Vertical, CellStyleVertical);
+                CsExcel.Render.AsFile([.. cellsVertical, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceVertical.xlsx""");
 
-            //foreach (var r in records.Take(1))
-            //{
-            //    var cellsVertical = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Vertical, CellStyleVertical);
-            //    CsExcel.Render.AsFile([.. cellsVertical, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceVertical.xlsx""");
-
-            //    var cellsHorizontal = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
-            //    CsExcel.Render.AsFile([.. cellsHorizontal, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceHorizontal.xlsx""");
-            //}
+                var cellsHorizontal = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
+                CsExcel.Render.AsFile([.. cellsHorizontal, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceHorizontal.xlsx""");
+            }
         }
         [Fact]
         void RenderingInFableElmishOrSimilar()

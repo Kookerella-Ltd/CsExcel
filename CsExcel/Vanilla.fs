@@ -172,25 +172,125 @@ module PositionFactory =
     let Stay = Position.Stay
 
 module Table =
-    module DirectionFactory = 
-        let Vertical = Table.Direction.Vertical 
+    open System.Reflection
+    open System.Collections.Concurrent
+
+    module DirectionFactory =
+        let Vertical = Table.Direction.Vertical
         let Horizontal = Table.Direction.Horizontal
 
     type CellStyleGetterDelegate = delegate of int * string -> CellProp seq
-    
-    let fromInstance<'T>(x : 'T,direction : Direction,getCellStyle : CellStyleGetterDelegate) =
-    // this is a placeholder implementation, because the underlying functionality assumes the type is an F# type.
-        failwithf "fromInstance is not implemented yet %A" typeof<'T>
-        x
-        |> Table.fromInstance<'T> direction (fun i s -> getCellStyle.Invoke(i,s) |> Seq.toList)
+
+    // FsExcel's own Table.fromInstance/fromSeq only work for F# record types, because they're
+    // implemented with FSharpType.GetRecordFields/FSharpValue.GetRecordField, which throw for any
+    // other .NET type - and those helpers are private, so we can't reuse them. Reimplemented here
+    // with plain PropertyInfo reflection instead, so it works for C# classes, C# records and
+    // anonymous types too (as well as F# records, whose fields are ordinary public properties).
+    module private Fields =
+        let cache = ConcurrentDictionary<System.Type, PropertyInfo[]>()
+        let ofType (t : System.Type) =
+            cache.GetOrAdd(t, fun t ->
+                t.GetProperties(BindingFlags.Public ||| BindingFlags.Instance)
+                |> Array.filter (fun p -> p.CanRead && p.GetIndexParameters().Length = 0))
+
+    module private Cells =
+        let toCellProp (value : obj) =
+            match value with
+            | null -> CellProp.String ""
+            | :? string as s -> CellProp.String s
+            | :? bool as b -> CellProp.Boolean b
+            | :? System.DateTimeOffset as dto ->
+                // TODO handle dates explicitly - currently rendered as text, matching FsExcel's own Table module
+                CellProp.String (dto.ToString("u"))
+            | :? System.DateTime as dt ->
+                CellProp.String (dt.ToString("u"))
+            | :? int as i -> CellProp.Integer i
+            | :? float as f -> CellProp.Float f
+            | :? float32 as f -> CellProp.Float (float f)
+            | :? decimal as d -> CellProp.Float (float d)
+            | value -> CellProp.String (string value)
+
+        let body (getCellStyle : string -> CellProp list) (x : obj) =
+            x.GetType()
+            |> Fields.ofType
+            |> Array.map (fun p -> p.Name, p.GetValue(x))
+            |> Array.map (fun (name, value) ->
+                let style = getCellStyle name
+                let content = toCellProp value
+                Cell [ content; yield! style; Next Stay ])
+            |> List.ofArray
+
+        let header<'T> (getCellStyle : string -> CellProp list) =
+            typeof<'T>
+            |> Fields.ofType
+            |> Array.map (fun p ->
+                let style = getCellStyle p.Name
+                Cell [ CellProp.String p.Name; yield! style; Next Stay ])
+            |> List.ofArray
+
+    let fromInstance<'T>(x : 'T,direction : Direction,getCellStyle : CellStyleGetterDelegate) : Item seq =
+        let getCellStyleF i s = getCellStyle.Invoke(i,s) |> Seq.toList
+        let headerCells = Cells.header<'T> (getCellStyleF 0)
+        let bodyCells = box x |> Cells.body (getCellStyleF 1)
+        match direction with
+        | Horizontal ->
+            [
+                for headerCell in headerCells do
+                    headerCell
+                    Go (RightBy 1)
+                Go NewRow
+                for bodyCell in bodyCells do
+                    bodyCell
+                    Go (RightBy 1)
+                Go NewRow
+            ]
+        | Vertical ->
+            [
+                for heading, value in List.zip headerCells bodyCells do
+                    heading
+                    Go (RightBy 1)
+                    value
+                    Go (DownBy 1)
+                    Go (LeftBy 1)
+            ]
         |> List.toSeq
 
     type CellStyleGetterSeqDelegate = delegate of int * string -> CellProp seq
 
-    let fromIEnumerable<'T>(xs : 'T seq,direction : Direction,getCellStyle : CellStyleGetterSeqDelegate) = 
-    // this is a placeholder implementation, because the underlying functionality assumes the type is an F# type.
-        xs
-        |> Table.fromSeq<'T> direction (fun i s -> getCellStyle.Invoke(i,s) |> Seq.toList)
+    let fromIEnumerable<'T>(xs : 'T seq,direction : Direction,getCellStyle : CellStyleGetterSeqDelegate) : Item seq =
+        let getCellStyleF i s = getCellStyle.Invoke(i,s) |> Seq.toList
+        let xs = xs |> Array.ofSeq
+        let headerCells = Cells.header<'T> (getCellStyleF 0)
+        match direction with
+        | Vertical ->
+            [
+                let depth = xs.Length + 1
+                for headerCell in headerCells do
+                    headerCell
+                    Go (DownBy 1)
+                Go (UpBy depth)
+                Go (RightBy 1)
+                for i, x in xs |> Seq.indexed do
+                    for bodyCell in box x |> Cells.body (getCellStyleF (i+1)) do
+                        bodyCell
+                        Go (DownBy 1)
+                    Go (UpBy depth)
+                    Go (RightBy 1)
+                Go (DownBy (depth-1))
+                Go NewRow
+            ]
+        | Horizontal ->
+            [
+                for headerCell in headerCells do
+                    headerCell
+                    Go (RightBy 1)
+                Go NewRow
+                for i, x in xs |> Seq.indexed do
+                    for bodyCell in box x |> Cells.body (getCellStyleF (i+1)) do
+                        bodyCell
+                        Go (RightBy 1)
+                    Go NewRow
+            ]
         |> List.toSeq
 
 module CellPropFactory = 
