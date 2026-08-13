@@ -256,7 +256,98 @@ module ItemFactory =
     let FreezePanes(freezePanes) = 
         Item.FreezePanes freezePanes
 
-module Render = 
+module AutoFilterRangeFactory =
+    let RangeUsed = AutoFilterRange.RangeUsed
+    let CurrentRegion(cell : string) = AutoFilterRange.CurrentRegion cell
+    let Range(range : string) = AutoFilterRange.Range range
+
+module AutoFilterFactory = 
+    let EnableOnly(range : AutoFilterRange) = AutoFilter.EnableOnly range
+    let Clear(range : AutoFilterRange) = AutoFilter.Clear range
+    let EqualToString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.EqualToString (range, column, value)
+    let EqualToInt(range : AutoFilterRange, column : int, value : int) = 
+        AutoFilter.EqualToInt (range, column, value)
+    let EqualToFloat(range : AutoFilterRange, column : int, value : float) = 
+        AutoFilter.EqualToFloat (range, column, value)
+    let EqualToDateTime(range : AutoFilterRange, column : int, value : DateTime) = 
+        AutoFilter.EqualToDateTime (range, column, value)
+    let EqualToBool(range : AutoFilterRange, column : int, value : bool) =
+        AutoFilter.EqualToBool (range, column, value)
+    let NotEqualToString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.NotEqualToString (range, column, value)
+    let NotEqualToInt(range : AutoFilterRange, column : int, value : int) = 
+        AutoFilter.NotEqualToInt (range, column, value)
+    let NotEqualToFloat(range : AutoFilterRange, column : int, value : float) = 
+        AutoFilter.NotEqualToFloat (range, column, value)
+    let NotEqualToDateTime(range : AutoFilterRange, column : int, value : DateTime) = 
+        AutoFilter.NotEqualToDateTime (range, column, value)
+    let NotEqualToBool(range : AutoFilterRange, column : int, value : bool) =
+        AutoFilter.NotEqualToBool (range, column, value)
+    let BetweenInt(range : AutoFilterRange, column : int, min : int, max : int) = 
+        AutoFilter.BetweenInt (range, column, min, max)
+    let BetweenFloat(range : AutoFilterRange, column : int, min : float, max : float) = 
+        AutoFilter.BetweenFloat (range, column, min, max)
+    let BetweenDateTime(range : AutoFilterRange, column : int, min : DateTime, max : DateTime) = 
+        AutoFilter.BetweenDateTime (range, column, min, max)
+    let NotBetweenInt(range : AutoFilterRange, column : int, min : int, max : int) = 
+        AutoFilter.NotBetweenInt (range, column, min, max)
+    let NotBetweenFloat(range : AutoFilterRange, column : int, min : float, max : float) = 
+        AutoFilter.NotBetweenFloat (range, column, min, max)
+    let NotBetweenDateTime(range : AutoFilterRange, column : int, min : DateTime, max : DateTime) = 
+        AutoFilter.NotBetweenDateTime (range, column, min, max)
+    let ContainsString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.ContainsString (range, column, value)
+    let NotContainsString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.NotContainsString (range, column, value)
+    let BeginsWithString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.BeginsWithString (range, column, value)
+    let NotBeginsWithString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.NotBeginsWithString (range, column, value)
+    let EndsWithString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.EndsWithString (range, column, value)
+    let NotEndsWithString(range : AutoFilterRange, column : int, value : string) = 
+        AutoFilter.NotEndsWithString (range, column, value)
+    let Top(range : AutoFilterRange, column : int, value : int, topType : XLTopBottomType) = 
+        AutoFilter.Top (range, column, value, topType)
+    let Bottom(range : AutoFilterRange, column : int, value : int, bottomType : XLTopBottomType) = 
+        AutoFilter.Bottom (range, column, value, bottomType)
+    let GreaterThanInt(range : AutoFilterRange, column : int, value : int) = 
+        AutoFilter.GreaterThanInt (range, column, value)
+    let GreaterThanFloat(range : AutoFilterRange, column : int, value : float) = 
+        AutoFilter.GreaterThanFloat (range, column, value)
+    let GreaterThanDateTime(range : AutoFilterRange, column : int, value : DateTime) = 
+        AutoFilter.GreaterThanDateTime (range, column, value)
+    let LessThanInt(range : AutoFilterRange, column : int, value : int) = 
+        AutoFilter.LessThanInt (range, column, value)
+    let LessThanFloat(range : AutoFilterRange, column : int, value : float) = 
+        AutoFilter.LessThanFloat (range, column, value)
+    let LessThanDateTime(range : AutoFilterRange, column : int, value : DateTime) = 
+        AutoFilter.LessThanDateTime (range, column, value)
+    let EqualOrGreaterThanInt(range : AutoFilterRange, column : int, value : int) = 
+        AutoFilter.EqualOrGreaterThanInt (range, column, value)
+    let EqualOrGreaterThanFloat(range : AutoFilterRange, column : int, value : float) = 
+        AutoFilter.EqualOrGreaterThanFloat (range, column, value)
+    let EqualOrGreaterThanDateTime(range : AutoFilterRange, column : int, value : DateTime) = 
+        AutoFilter.EqualOrGreaterThanDateTime (range, column, value)
+    let EqualOrLessThanInt(range : AutoFilterRange, column : int, value : int) = 
+        AutoFilter.EqualOrLessThanInt (range, column, value)
+    let EqualOrLessThanFloat(range : AutoFilterRange, column : int, value : float) = 
+        AutoFilter.EqualOrLessThanFloat (range, column, value)
+    let EqualOrLessThanDateTime(range : AutoFilterRange, column : int, value : DateTime) = 
+        AutoFilter.EqualOrLessThanDateTime (range, column, value)
+    let AboveAverage(range : AutoFilterRange, column : int) = 
+        AutoFilter.AboveAverage (range, column)
+    let BelowAverage(range : AutoFilterRange, column : int) =
+        AutoFilter.BelowAverage (range, column)
+
+module FreezePanesFactory =
+    let TopRow = FreezePanes.TopRow
+    let FirstColumn = FreezePanes.FirstColumn
+    let Panes(row : int, column : int) = FreezePanes.Panes(row, column)
+    let UnfreezePanes = FreezePanes.UnfreezePanes
+
+module Render =
     let AsFile(cells : Item seq,path : string) = 
         cells
         |> Seq.toList

@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
@@ -12,10 +12,9 @@
 
   <ItemGroup>
     <PackageReference Include="FsExcel" Version="0.0.49" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="9.0.300" />
+    <PackageReference Include="FSharp.Core" Version="10.1.400" />
+    <PackageReference Include="System.IO.Packaging" Version="6.0.1" />
+    <PackageReference Include="Microsoft.NETCore.Platforms" Version="1.1.1" />
   </ItemGroup>
 
 </Project>

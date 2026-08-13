@@ -13,7 +13,7 @@ using static ClosedXML.Excel.XLFontUnderlineValues;
 using ClosedXML.Excel;
 using static CsExcel.CellLabelFactory;
 using static CsExcel.StyleMergedCellFactory;
-using static FsExcel.Item;
+using static CsExcel.FreezePanesFactory;
 using System.Runtime.InteropServices;
 
 namespace UnitTests
@@ -23,7 +23,6 @@ namespace UnitTests
         [Fact]
         public void HelloWorld()
         {
-
             var cells = new[]
                 {
                     Cell([ String("Hello World") ])
@@ -816,7 +815,7 @@ namespace UnitTests
             CsExcel.Render.AsFile(Items(), """c:\temp\MergeCellsWithVerticalAlignment.xlsx""");
         }
 
-        record JoiningInfo(string Name, int Age, decimal Fees, string DateJoined);
+        //record JoiningInfo(string Name, int Age, decimal Fees, string DateJoined);
 
         //Tables from Records
         [Fact]
@@ -881,7 +880,7 @@ namespace UnitTests
                 Cell([String("Hello world!")])            
             };
             var bytes = CsExcel.Render.AsStreamBytes(items);
-            Assert.Equal(6196,bytes.Length);
+            Assert.Equal(6188,bytes.Length);
         }
         [Fact]
         void DataTypes()
@@ -968,9 +967,112 @@ namespace UnitTests
             // HTML(htmlString) can be used in notebook
         }
         [Fact]
-        void AutoFilters()
+        void AutoFilterEnableOnly()
         {
-            // not yet implemented
+            var headings = new Item[]
+            {
+                Cell([String("StringCol"), HorizontalAlignment(Center)]),
+                Cell([String("IntCol"), HorizontalAlignment(Center)]),
+                Cell([String("FloatCol"), HorizontalAlignment(Center)]),
+                Cell([String("DateTimeCol"), HorizontalAlignment(Center)]),
+                Cell([String("BooleanCol"), HorizontalAlignment(Center)]),
+                Go(NewRow)
+            };
+            var rows = (from i in Enumerable.Range(1, 5)
+                       select new Item[]
+                       {
+                           Cell([String($"String{i}")]),
+                           Cell([Integer(i)]),
+                           Cell([Float((i + 0.1))]),
+                           Cell([DateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i))]),
+                           Cell([Boolean(i % 2 == 0)]),
+                           Go(NewRow)
+                       }).SelectMany(x => x);
+            IEnumerable<Item> items = [.. headings, .. rows, AutoFit(AutoFitFactory.All), AutoFilter([AutoFilterFactory.EnableOnly(AutoFilterRangeFactory.RangeUsed)])];
+            CsExcel.Render.AsFile(items, """c:\temp\AutoFilterEnableOnly.xlsx""");
+        }
+        [Fact]
+        void AutoFilterCompound()
+        {
+            var headings = new Item[]
+            {
+                Cell([String("StringCol"), HorizontalAlignment(Center)]),
+                Cell([String("IntCol"), HorizontalAlignment(Center)]),
+                Cell([String("FloatCol"), HorizontalAlignment(Center)]),
+                Cell([String("DateTimeCol"), HorizontalAlignment(Center)]),
+                Cell([String("BooleanCol"), HorizontalAlignment(Center)]),
+                Go(NewRow)
+            };
+            var rows = (from i in Enumerable.Range(1, 5)
+                        select new Item[]
+                        {
+                           Cell([String($"String{i}")]),
+                           Cell([Integer(i)]),
+                           Cell([Float((i + 0.1))]),
+                           Cell([DateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i))]),
+                           Cell([Boolean(i % 2 == 0)]),
+                           Go(NewRow)
+                        }).SelectMany(x => x);
+            IEnumerable<Item> items = 
+                [   .. headings, 
+                    .. rows, 
+                    AutoFit(AutoFitFactory.All), 
+                    AutoFilter(
+                        [
+                            AutoFilterFactory.GreaterThanInt(AutoFilterRangeFactory.RangeUsed,2,3),
+                            AutoFilterFactory.EqualToBool(AutoFilterRangeFactory.RangeUsed,5,true)
+                        ])
+                ];
+            CsExcel.Render.AsFile(items, """c:\temp\AutoFilterCompound.xlsx""");
+        }
+
+        static Item[] MakeFreezePanesHeadingsAndRows()
+        {
+            var headings = new Item[]
+            {
+                Cell([String("StringCol"), HorizontalAlignment(Center)]),
+                Cell([String("IntCol"), HorizontalAlignment(Center)]),
+                Cell([String("FloatCol"), HorizontalAlignment(Center)]),
+                Cell([String("DateTimeCol"), HorizontalAlignment(Center)]),
+                Cell([String("BooleanCol"), HorizontalAlignment(Center)]),
+                Go(NewRow)
+            };
+            var rows = (from i in Enumerable.Range(1, 5)
+                        select new Item[]
+                        {
+                           Cell([String($"String{i}")]),
+                           Cell([Integer(i)]),
+                           Cell([Float((i + 0.1))]),
+                           Cell([DateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i))]),
+                           Cell([Boolean(i % 2 == 0)]),
+                           Go(NewRow)
+                        }).SelectMany(x => x);
+            return [.. headings, .. rows];
+        }
+
+        [Fact]
+        void FreezePanesRowAndColumn()
+        {
+            IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(Panes(1, 1))];
+            CsExcel.Render.AsFile(items, """c:\temp\FreezePanes.xlsx""");
+        }
+        [Fact]
+        void FreezePanesTopRow()
+        {
+            IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(TopRow)];
+            CsExcel.Render.AsFile(items, """c:\temp\FreezePanesTopRow.xlsx""");
+        }
+        [Fact]
+        void FreezePanesFirstColumn()
+        {
+            IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(FirstColumn)];
+            CsExcel.Render.AsFile(items, """c:\temp\FreezePanesFirstColumn.xlsx""");
+        }
+        [Fact]
+        void FreezePanesUnfreezePanes()
+        {
+            IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(TopRow), FreezePanes(UnfreezePanes)];
+            CsExcel.Render.AsFile(items, """c:\temp\FreezePanesUnfreezePanes.xlsx""");
         }
     }
 }

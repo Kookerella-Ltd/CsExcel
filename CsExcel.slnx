@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="CsExcel/CsExcel.fsproj" />
+  <Project Path="UnitTests/UnitTests.csproj" />
+</Solution>
