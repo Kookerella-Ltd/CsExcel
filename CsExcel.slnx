@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="LICENSE.txt" />
+  </Folder>
   <Folder Name="/Docs/">
     <File Path="Docs/Vanilla.md" />
     <File Path="Docs/Fluent.md" />

@@ -1,6 +1,8 @@
 # CsExcel — Fluent API Guide
 
-CsExcel is a C#-friendly wrapper around [FsExcel](https://github.com/misterspeedy/FsExcel), an F# library for writing Excel workbooks (via [ClosedXML](https://github.com/ClosedXML/ClosedXML)) using a flat, declarative list of instructions instead of ClosedXML's own cell-by-cell object model.
+CsExcel is a C# wrapper around [**FsExcel**](https://github.com/misterspeedy/FsExcel), an F# library for writing Excel workbooks (via [ClosedXML](https://github.com/ClosedXML/ClosedXML)) using a flat, declarative list of instructions instead of ClosedXML's own cell-by-cell object model.
+
+> **All of the design and functionality here is FsExcel's** — CsExcel just exposes it in a form C# code can call directly. This guide covers the same ground as [FsExcel's own README](https://github.com/misterspeedy/FsExcel#readme), translated into C#, but FsExcel's docs are the deeper, authoritative reference: check there first for anything not covered below, for the reasoning behind how a feature works, or for functionality added after this guide was written. (The fluent builder shown here is a CsExcel-specific addition on top of FsExcel's model, not something FsExcel itself has — see [Vanilla.md](Vanilla.md) for the style that maps most directly onto FsExcel's own API.)
 
 CsExcel ships two calling styles over the same underlying model:
 
@@ -482,3 +484,5 @@ yield return FreezePanes(UnfreezePanes);
 ---
 
 Every example above is a trimmed-down version of a working, tested scenario — see [UnitTests/Fluent.cs](../UnitTests/Fluent.cs) for the full, runnable versions (including the exact assertions that verify each one's output).
+
+For anything beyond this guide — a feature not shown here, the reasoning behind a design choice, or the latest additions — go to the source: [FsExcel on GitHub](https://github.com/misterspeedy/FsExcel).
