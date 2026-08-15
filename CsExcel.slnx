@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/Docs/">
+    <File Path="Docs/Vanilla.md" />
+    <File Path="Docs/Fluent.md" />
+  </Folder>
   <Project Path="CsExcel/CsExcel.fsproj" />
   <Project Path="UnitTests/UnitTests.csproj" />
 </Solution>
