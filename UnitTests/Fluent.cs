@@ -5,7 +5,6 @@ using CsExcel.Fluent;
 using System.Globalization;
 using FsExcel;
 using static CsExcel.BorderFactory;
-using static CsExcel.FontEmphasisFactory;
 using static CsExcel.HorizontalAlignmentFactory;
 using static CsExcel.SizeFactory;
 using static ClosedXML.Excel.XLBorderStyleValues;
@@ -27,9 +26,8 @@ namespace UnitTests
         [Fact]
         public void HelloWorld()
         {
-            new[] {
-                Cell(ps => ps.AddString("Hello World"))
-            }.AsFile(TestFiles.PathFor("fhelloWorld.xlsx"));
+            Item[] items = [Cell().String("Hello World")];
+            items.AsFile(TestFiles.PathFor("fhelloWorld.xlsx"));
 
             using var wb = TestFiles.Open("fhelloWorld.xlsx");
             Assert.Equal("Hello World", wb.Worksheet(1).Cell(1, 1).GetString());
@@ -37,9 +35,14 @@ namespace UnitTests
         [Fact]
         public void MultipleCells()
         {
-            (from n in Enumerable.Range(1, 10)
-             select Cell(ps => ps.AddInteger(n)))
-                .AsFile(TestFiles.PathFor("fMultipleCells.xlsx"));
+            IEnumerable<Item> Cells()
+            {
+                foreach (var n in Enumerable.Range(1, 10))
+                {
+                    yield return Cell().Integer(n);
+                }
+            }
+            Cells().AsFile(TestFiles.PathFor("fMultipleCells.xlsx"));
 
             using var wb = TestFiles.Open("fMultipleCells.xlsx");
             var ws = wb.Worksheet(1);
@@ -50,10 +53,15 @@ namespace UnitTests
         [Fact]
         public void VerticalMovement()
         {
-            (from m in Enumerable.Range(1, 12)
-             let monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m)
-             select Cell(ps => ps.AddString(monthName).AddNext(DownBy(1))))
-                .AsFile(TestFiles.PathFor("fVerticalMovement.xlsx"));
+            IEnumerable<Item> Cells()
+            {
+                foreach (var m in Enumerable.Range(1, 12))
+                {
+                    var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
+                    yield return Cell().String(monthName).Next(DownBy(1));
+                }
+            }
+            Cells().AsFile(TestFiles.PathFor("fVerticalMovement.xlsx"));
 
             using var wb = TestFiles.Open("fVerticalMovement.xlsx");
             var ws = wb.Worksheet(1);
@@ -69,8 +77,8 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(1, 12))
                 {
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
-                    yield return Cell(ps => ps.AddString(monthName));
-                    yield return Cell(ps => ps.AddInteger(monthName.Length).AddNext(NewRow));
+                    yield return Cell().String(monthName);
+                    yield return Cell().Integer(monthName.Length).Next(NewRow);
                 }
             };
             Cells().AsFile(TestFiles.PathFor("fVerticalMovement2.xlsx"));
@@ -90,8 +98,8 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(1, 12))
                 {
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
-                    yield return Cell(ps => ps.AddString(monthName));
-                    yield return Cell(ps => ps.AddInteger(monthName.Length));
+                    yield return Cell().String(monthName);
+                    yield return Cell().Integer(monthName.Length);
                     yield return Go(NewRow);
                 }
             };
@@ -114,8 +122,8 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(1, 12))
                 {
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
-                    yield return Cell(ps => ps.AddString(monthName));
-                    yield return Cell(ps => ps.AddInteger(monthName.Length));
+                    yield return Cell().String(monthName);
+                    yield return Cell().Integer(monthName.Length);
                     yield return Go(NewRow);
                 }
             }
@@ -137,22 +145,19 @@ namespace UnitTests
             {
                 foreach (var heading in new[] { "Month", "Letter Count" })
                 {
-                    yield return Cell(empty =>
-                        empty.AddString(heading)
-                            .AddBorder(Bottom(Medium))
-                            .AddFontEmphasis(Bold)
-                            .AddFontEmphasis(Italic));
+                    yield return Cell().String(heading).Border(Bottom(Medium)).Bold().Italic();
                 }
                 yield return Go(NewRow);
                 foreach (var m in Enumerable.Range(1, 12))
                 {
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
-                    yield return Cell(empty =>
-                        empty.AddString(monthName)
-                            .AddFontEmphasis(Underline(DoubleAccounting))
-                            .Concat(empty.AddFontEmphasis(StrikeThrough)
-                                .Where(_ => monthName == "May")));
-                    yield return Cell(empty => empty.AddInteger(monthName.Length));
+                    var monthCell = Cell().String(monthName).Underline(DoubleAccounting);
+                    if (monthName == "May")
+                    {
+                        monthCell.StrikeThrough();
+                    }
+                    yield return monthCell;
+                    yield return Cell().Integer(monthName.Length);
                     yield return Go(NewRow);
                 }
             };
@@ -171,27 +176,28 @@ namespace UnitTests
         [Fact]
         public void BorderAndFontStyling2()
         {
-            // A different way of achieving the same reuse as Vanilla.BorderAndFontStyling2's
-            // "headingStyle" CellProp[] array: a composable function over CellProp seq.
-            IEnumerable<CellProp> HeadingStyle(IEnumerable<CellProp> ps) =>
-                ps.AddBorder(Bottom(Medium)).AddFontEmphasis(Bold).AddFontEmphasis(Italic);
+            // A composable function over the builder - the fluent analogue of Vanilla's
+            // "headingStyle" CellProp[] array, reused across every heading cell.
+            CellPropsBuilder HeadingStyle(CellPropsBuilder cell) =>
+                cell.Border(Bottom(Medium)).Bold().Italic();
 
             IEnumerable<Item> Items()
             {
                 foreach (var heading in new[] { "Month", "Letter Count" })
                 {
-                    yield return Cell(ps => HeadingStyle(ps).AddString(heading));
+                    yield return HeadingStyle(Cell()).String(heading);
                 }
                 yield return Go(NewRow);
                 foreach (var m in Enumerable.Range(1, 12))
                 {
                     var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
-                    yield return Cell(empty =>
-                        empty.AddString(monthName)
-                            .AddFontEmphasis(Underline(DoubleAccounting))
-                            .Concat(empty.AddFontEmphasis(StrikeThrough)
-                                .Where(_ => monthName == "May")));
-                    yield return Cell(ps => ps.AddInteger(monthName.Length));
+                    var monthCell = Cell().String(monthName).Underline(DoubleAccounting);
+                    if (monthName == "May")
+                    {
+                        monthCell.StrikeThrough();
+                    }
+                    yield return monthCell;
+                    yield return Cell().Integer(monthName.Length);
                     yield return Go(NewRow);
                 }
             };
@@ -215,7 +221,7 @@ namespace UnitTests
             {
                 foreach (var (fontName, i) in fontNames)
                 {
-                    yield return Cell(ps => ps.AddString(fontName).AddFontName(fontName).AddFontSize(10 + (i * 2)));
+                    yield return Cell().String(fontName).FontName(fontName).FontSize(10 + (i * 2));
                 }
                 Go(NewRow);
             };
@@ -238,22 +244,22 @@ namespace UnitTests
         {
             Item[] items =
             [
-                Cell(ps => ps.AddString("Without wrap text:")
-                    .AddHorizontalAlignment(Center)
-                    .AddVerticalAlignment(VerticalAlignmentFactory.Middle)
-                    .AddCellSize(ColWidth(16))),
-                Cell(ps => ps.AddString("The quick brown fox jumps over the lazy dog.")
-                    .AddHorizontalAlignment(Center)
-                    .AddVerticalAlignment(VerticalAlignmentFactory.Middle)),
+                Cell().String("Without wrap text:")
+                    .HorizontalAlignment(Center)
+                    .VerticalAlignment(VerticalAlignmentFactory.Middle)
+                    .CellSize(ColWidth(16)),
+                Cell().String("The quick brown fox jumps over the lazy dog.")
+                    .HorizontalAlignment(Center)
+                    .VerticalAlignment(VerticalAlignmentFactory.Middle),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Without wrap text:")
-                    .AddHorizontalAlignment(Center)
-                    .AddVerticalAlignment(VerticalAlignmentFactory.Middle)
-                    .AddCellSize(ColWidth(16))),
-                Cell(ps => ps.AddString("The quick brown fox jumps over the lazy dog.")
-                    .AddHorizontalAlignment(Center)
-                    .AddVerticalAlignment(VerticalAlignmentFactory.Middle)
-                    .AddWrapText(true)),
+                Cell().String("Without wrap text:")
+                    .HorizontalAlignment(Center)
+                    .VerticalAlignment(VerticalAlignmentFactory.Middle)
+                    .CellSize(ColWidth(16)),
+                Cell().String("The quick brown fox jumps over the lazy dog.")
+                    .HorizontalAlignment(Center)
+                    .VerticalAlignment(VerticalAlignmentFactory.Middle)
+                    .WrapText(true),
             ];
             items.AsFile(TestFiles.PathFor("fWrapText.xlsx"));
 
@@ -285,12 +291,12 @@ namespace UnitTests
                 yield return Go(RC(1, 2));
                 foreach (var category in Enumerable.Range(1, 10))
                 {
-                    yield return Cell(ps => ps.AddString($"Category {category}").AddTextRotation(45).AddCellSize(RowHeight(45)));
+                    yield return Cell().String($"Category {category}").TextRotation(45).CellSize(RowHeight(45));
                 }
                 yield return Go(NewRow);
                 foreach (var supplier in Enumerable.Range(1, 8))
                 {
-                    yield return Cell(ps => ps.AddString($"Supplier {supplier}").AddCellSize(ColWidth(10)));
+                    yield return Cell().String($"Supplier {supplier}").CellSize(ColWidth(10));
                     yield return Go(NewRow);
                 }
                 yield return Go(RC(2, 2));
@@ -299,7 +305,7 @@ namespace UnitTests
                 {
                     foreach (var category in Enumerable.Range(1, 10))
                     {
-                        yield return Cell(ps => ps.AddString(GetPerformance(category, supplier)).AddHorizontalAlignment(Center));
+                        yield return Cell().String(GetPerformance(category, supplier)).HorizontalAlignment(Center);
                     }
                     yield return Go(NewRow);
                 }
@@ -341,18 +347,18 @@ namespace UnitTests
                     ("Price", HorizontalAlignmentFactory.Right),
                     ("Count", HorizontalAlignmentFactory.Right) })
                 {
-                    yield return Cell(ps => ps.AddString(heading)
-                        .AddBorder(Bottom(Medium))
-                        .AddFontEmphasis(Bold)
-                        .AddFontEmphasis(Italic)
-                        .AddHorizontalAlignment(alignment));
+                    yield return Cell().String(heading)
+                        .Border(Bottom(Medium))
+                        .Bold()
+                        .Italic()
+                        .HorizontalAlignment(alignment);
                 }
                 yield return Go(NewRow);
                 foreach (var item in new[] { "Apples", "Oranges", "Pears" })
                 {
-                    yield return Cell(ps => ps.AddString(item));
-                    yield return Cell(ps => ps.AddFloat(RandomGenerator.NextDouble() * 1000.0).AddFormatCode("$0.00"));
-                    yield return Cell(ps => ps.AddInteger((int)(RandomGenerator.NextDouble() * 100.0)).AddFormatCode("#,##0"));
+                    yield return Cell().String(item);
+                    yield return Cell().Float(RandomGenerator.NextDouble() * 1000.0).FormatCode("$0.00");
+                    yield return Cell().Integer((int)(RandomGenerator.NextDouble() * 100.0)).FormatCode("#,##0");
                     yield return Go(NewRow);
                 }
             };
@@ -388,19 +394,19 @@ namespace UnitTests
                     ("Count", HorizontalAlignmentFactory.Right),
                     ("Total", HorizontalAlignmentFactory.Right) })
                 {
-                    yield return Cell(ps => ps.AddString(heading)
-                        .AddBorder(Bottom(Medium))
-                        .AddFontEmphasis(Bold)
-                        .AddFontEmphasis(Italic)
-                        .AddHorizontalAlignment(alignment));
+                    yield return Cell().String(heading)
+                        .Border(Bottom(Medium))
+                        .Bold()
+                        .Italic()
+                        .HorizontalAlignment(alignment);
                 }
                 yield return Go(NewRow);
                 foreach (var (index, item) in new[] { "Apples", "Oranges", "Pears" }.Select((item, index) => (index, item)))
                 {
-                    yield return Cell(ps => ps.AddString(item));
-                    yield return Cell(ps => ps.AddFloat(RandomGenerator.NextDouble() * 1000.0).AddFormatCode("$0.00"));
-                    yield return Cell(ps => ps.AddInteger((int)(RandomGenerator.NextDouble() * 100.0)).AddFormatCode("#,##0"));
-                    yield return Cell(ps => ps.AddFormulaA1($"=B{index + 2}*C{index + 2}").AddFormatCode("$#,##0.00"));
+                    yield return Cell().String(item);
+                    yield return Cell().Float(RandomGenerator.NextDouble() * 1000.0).FormatCode("$0.00");
+                    yield return Cell().Integer((int)(RandomGenerator.NextDouble() * 100.0)).FormatCode("#,##0");
+                    yield return Cell().FormulaA1($"=B{index + 2}*C{index + 2}").FormatCode("$#,##0.00");
                     yield return Go(NewRow);
                 }
             };
@@ -442,17 +448,17 @@ namespace UnitTests
                             var backgroundColor = XLColor.FromArgb(0, r, g, b);
                             var fontColor = XLColor.FromArgb(0, b, r, g);
                             var borderColor = XLColor.FromArgb(0, g, b, r);
-                            yield return Cell(ps => ps.AddString($"R={r};G={g};B={b}")
-                                .AddFontColor(fontColor)
-                                .AddBackgroundColor(backgroundColor)
-                                .AddBorder(Top(XLBorderStyleValues.Thick))
-                                .AddBorder(Right(XLBorderStyleValues.Thick))
-                                .AddBorder(Bottom(XLBorderStyleValues.Thick))
-                                .AddBorder(Left(XLBorderStyleValues.Thick))
-                                .AddBorderColor(BorderColorFactory.Top(borderColor))
-                                .AddBorderColor(BorderColorFactory.Right(borderColor))
-                                .AddBorderColor(BorderColorFactory.Bottom(borderColor))
-                                .AddBorderColor(BorderColorFactory.Left(borderColor)));
+                            yield return Cell().String($"R={r};G={g};B={b}")
+                                .FontColor(fontColor)
+                                .BackgroundColor(backgroundColor)
+                                .Border(Top(XLBorderStyleValues.Thick))
+                                .Border(Right(XLBorderStyleValues.Thick))
+                                .Border(Bottom(XLBorderStyleValues.Thick))
+                                .Border(Left(XLBorderStyleValues.Thick))
+                                .BorderColor(BorderColorFactory.Top(borderColor))
+                                .BorderColor(BorderColorFactory.Right(borderColor))
+                                .BorderColor(BorderColorFactory.Bottom(borderColor))
+                                .BorderColor(BorderColorFactory.Left(borderColor));
                         }
                         yield return Go(NewRow);
                     }
@@ -479,19 +485,19 @@ namespace UnitTests
         {
             IEnumerable<Item> Items()
             {
-                yield return Style(ps => ps.AddBorder(Bottom(Medium)).AddFontEmphasis(Bold).AddFontEmphasis(Italic));
+                yield return Style().Border(Bottom(Medium)).Bold().Italic();
                 foreach (var heading in new[] { "Stock Item", "Price", "Count" })
                 {
-                    yield return Cell(ps => ps.AddString(heading));
+                    yield return Cell().String(heading);
                 }
                 yield return Go(NewRow);
                 foreach (var item in new[] { "Apples", "Oranges", "Pears" })
                 {
-                    yield return Cell(ps => ps.AddString(item));
-                    yield return Style(ps => ps.AddFontEmphasis(Italic));
-                    yield return Cell(ps => ps.AddFloat(RandomGenerator.NextDouble() * 1000).AddFormatCode("$0.00"));
-                    yield return Cell(ps => ps.AddInteger((int)(RandomGenerator.NextDouble() * 100)).AddFormatCode("#,##0"));
-                    yield return Style(ps => ps);
+                    yield return Cell().String(item);
+                    yield return Style().Italic();
+                    yield return Cell().Float(RandomGenerator.NextDouble() * 1000).FormatCode("$0.00");
+                    yield return Cell().Integer((int)(RandomGenerator.NextDouble() * 100)).FormatCode("#,##0");
+                    yield return Style();
                     yield return Go(NewRow);
                 }
             };
@@ -518,34 +524,34 @@ namespace UnitTests
                 yield return Go(NewRow);
                 foreach (var (heading, colWidth) in new[] { ("ID", 3.22), ("Car Name", 10.33), ("Car Description", 49.33), ("Car Registration", 16.89) })
                 {
-                    yield return Cell(ps => ps.AddString(heading)
-                        .AddFontEmphasis(Bold)
-                        .AddFontName("Calibri")
-                        .AddFontSize(11)
-                        .AddHorizontalAlignment(Center)
-                        .AddFontColor(XLColor.FromArgb(0, 255, 255, 255))
-                        .AddBackgroundColor(XLColor.FromArgb(0, 68, 114, 196))
-                        .AddBorder(All(Thin))
-                        .AddCellSize(ColWidth(colWidth)));
+                    yield return Cell().String(heading)
+                        .Bold()
+                        .FontName("Calibri")
+                        .FontSize(11)
+                        .HorizontalAlignment(Center)
+                        .FontColor(XLColor.FromArgb(0, 255, 255, 255))
+                        .BackgroundColor(XLColor.FromArgb(0, 68, 114, 196))
+                        .Border(All(Thin))
+                        .CellSize(ColWidth(colWidth));
                 }
                 yield return Go(NewRow);
-                yield return Style(ps => ps.AddHorizontalAlignment(Center)
-                    .AddVerticalAlignment(VerticalAlignmentFactory.Middle)
-                    .AddBackgroundColor(XLColor.FromArgb(0, 240, 240, 210)));
-                yield return Cell(ps => ps.AddInteger(1).AddName("ID"));
-                yield return Cell(ps => ps.AddString("Ford Fiesta"));
-                yield return Cell(ps => ps.AddString("Car Technical Details:").AddNext(DownBy(1)));
-                yield return Cell(ps => ps.AddString("Technical Detail 1").AddNext(DownBy(1)));
-                yield return Cell(ps => ps.AddString("Technical Detail 2").AddNext(DownBy(1)));
-                yield return Cell(ps => ps.AddString("Technical Detail 3").AddName("LastL"));
+                yield return Style().HorizontalAlignment(Center)
+                    .VerticalAlignment(VerticalAlignmentFactory.Middle)
+                    .BackgroundColor(XLColor.FromArgb(0, 240, 240, 210));
+                yield return Cell().Integer(1).Name("ID");
+                yield return Cell().String("Ford Fiesta");
+                yield return Cell().String("Car Technical Details:").Next(DownBy(1));
+                yield return Cell().String("Technical Detail 1").Next(DownBy(1));
+                yield return Cell().String("Technical Detail 2").Next(DownBy(1));
+                yield return Cell().String("Technical Detail 3").Name("LastL");
                 yield return Go(RC(3, 4));
-                yield return Cell(ps => ps.AddString("AB12 CDE").AddName("Reg"));
+                yield return Cell().String("AB12 CDE").Name("Reg");
                 yield return Go(RC(6, 4));
-                yield return Cell(ps => ps.AddName("RegEnd"));
+                yield return Cell().Name("RegEnd");
                 yield return Go(RC(7, 3));
-                yield return Cell(ps => ps.AddString("Another Technical Detail").AddFontEmphasis(Italic).AddName("TD").AddNext(FsExcel.Position.Stay));
+                yield return Cell().String("Another Technical Detail").Italic().Name("TD").Next(FsExcel.Position.Stay);
                 yield return Go(DownBy(1));
-                yield return Cell(ps => ps.AddName("info"));
+                yield return Cell().Name("info");
                 yield return MergeCells(ColRowLabel("B", 3), ColRowLabel("B", 6));
                 yield return MergeCells(NamedCell("ID"), ColRowLabel("A", 6));
                 yield return MergeCells(ColRowLabel("C", 7), NamedCell("info"));
@@ -576,16 +582,16 @@ namespace UnitTests
         [Fact]
         public void AbsolutePositioning()
         {
-            var items =
-                new[] {
+            Item[] items =
+                [
                     Go(Col(3)),
-                    Cell(ps => ps.AddString("Col 3")),
+                    Cell().String("Col 3"),
                     Go(Row(4)),
-                    Cell(ps => ps.AddString("Row 4")),
+                    Cell().String("Row 4"),
                     Go(RC(6, 5)),
-                    Cell(ps => ps.AddString("R6C5")),
-                    Cell(ps => ps.AddString("R6C6"))
-                };
+                    Cell().String("R6C5"),
+                    Cell().String("R6C6")
+                ];
             items.AsFile(TestFiles.PathFor("fAbsolutePositioning.xlsx"));
 
             using var wb = TestFiles.Open("fAbsolutePositioning.xlsx");
@@ -603,7 +609,7 @@ namespace UnitTests
             {
                 foreach (var i in Enumerable.Range(1, 5))
                 {
-                    yield return Cell(ps => ps.AddInteger(i).AddNext(Stay));
+                    yield return Cell().Integer(i).Next(Stay);
                     yield return Go(DownBy(i));
                 }
             }
@@ -620,17 +626,17 @@ namespace UnitTests
         [Fact]
         public void NamedCells()
         {
-            var items = new[]
-            {
-                Cell(ps => ps.AddString("JohnDoe").AddName("Username")),
-                Cell(ps => ps.AddString("john.doe@company.com").AddScopedName(System.Tuple.Create("Email", NameScope.Workbook)))
-            };
+            Item[] items =
+            [
+                Cell().String("JohnDoe").Name("Username"),
+                Cell().String("john.doe@company.com").ScopedName("Email", NameScope.Workbook)
+            ];
             items.AsFile(TestFiles.PathFor("fNamedCells.xlsx"));
 
             using var wb = TestFiles.Open("fNamedCells.xlsx");
             var ws = wb.Worksheet(1);
             Assert.Equal("JohnDoe", ws.Cell("A1").GetString());
-            // A plain AddName(...) is worksheet-scoped; AddScopedName(..., NameScope.Workbook) is workbook-scoped.
+            // A plain Name(...) is worksheet-scoped; ScopedName(..., NameScope.Workbook) is workbook-scoped.
             Assert.Equal("JohnDoe", ws.NamedRange("Username").Ranges.First().FirstCell().GetString());
             Assert.Equal("john.doe@company.com", wb.NamedRange("Email").Ranges.First().FirstCell().GetString());
         }
@@ -657,8 +663,8 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(0, 11))
                 {
                     var monthName = britishCultureDateTimeFormatGetMonthName[m];
-                    yield return Cell(ps => ps.AddString(monthName));
-                    yield return Cell(ps => ps.AddInteger(monthName.Length));
+                    yield return Cell().String(monthName);
+                    yield return Cell().Integer(monthName.Length);
                     yield return Go(NewRow);
                 }
 
@@ -666,8 +672,8 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(0, 11))
                 {
                     var monthName = ukrainianCultureDateTimeFormatGetMonthName[m];
-                    yield return Cell(ps => ps.AddString(monthName));
-                    yield return Cell(ps => ps.AddInteger(monthName.Length));
+                    yield return Cell().String(monthName);
+                    yield return Cell().Integer(monthName.Length);
                     yield return Go(NewRow);
                 }
 
@@ -676,8 +682,8 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(0, 11))
                 {
                     var monthAbbreviation = britishCultureDateTimeFormatAbbreviatedMonthNames[m];
-                    yield return Cell(ps => ps.AddString(monthAbbreviation));
-                    yield return Cell(ps => ps.AddInteger(monthAbbreviation.Length));
+                    yield return Cell().String(monthAbbreviation);
+                    yield return Cell().Integer(monthAbbreviation.Length);
                     yield return Go(NewRow);
                 }
 
@@ -686,8 +692,8 @@ namespace UnitTests
                 foreach (var m in Enumerable.Range(0, 11))
                 {
                     var monthAbbreviation = ukrainianCultureDateTimeFormatAbbreviatedMonthNames[m];
-                    yield return Cell(ps => ps.AddString(monthAbbreviation));
-                    yield return Cell(ps => ps.AddInteger(monthAbbreviation.Length));
+                    yield return Cell().String(monthAbbreviation);
+                    yield return Cell().Integer(monthAbbreviation.Length);
                     yield return Go(NewRow);
                 }
             };
@@ -724,13 +730,13 @@ namespace UnitTests
                 yield return Workbook(workbook);
                 yield return Worksheet(ukrainianCultureNativeName);
                 yield return Go(RC(1, 3));
-                yield return Cell(ps => ps.AddFormulaA1($"='{britishCultureNativeName}'!B1*2"));
+                yield return Cell().FormulaA1($"='{britishCultureNativeName}'!B1*2");
                 yield return Worksheet(britishCultureNativeName);
                 yield return InsertRowsAbove(12); // The cell reference in the formula above will be updated to B13
                 for (var m = 0; m < 12; m++)
                 {
-                    yield return Cell(ps => ps.AddString(altMonthNames[m]));
-                    yield return Cell(ps => ps.AddInteger(altMonthNames[m].Length));
+                    yield return Cell().String(altMonthNames[m]);
+                    yield return Cell().Integer(altMonthNames[m].Length);
                     yield return Go(NewRow);
                 }
             }
@@ -752,7 +758,7 @@ namespace UnitTests
                 {
                     for (var y = 0; y <= 12; y++)
                     {
-                        yield return Cell(ps => ps.AddInteger(x * y));
+                        yield return Cell().Integer(x * y);
                     }
                     yield return Go(NewRow);
                 }
@@ -783,21 +789,21 @@ namespace UnitTests
                         ("Car Registration", 16.89),
                     })
                 {
-                    yield return Cell(ps => ps.AddString(heading)
-                        .AddFontEmphasis(Bold)
-                        .AddFontName("Calibri")
-                        .AddFontSize(11)
-                        .AddHorizontalAlignment(Center)
-                        .AddFontColor(XLColor.FromArgb(0, 255, 255, 255))
-                        .AddBackgroundColor(XLColor.FromArgb(0, 68, 114, 196))
-                        .AddBorder(All(Thin))
-                        .AddCellSize(ColWidth(colWidth)));
+                    yield return Cell().String(heading)
+                        .Bold()
+                        .FontName("Calibri")
+                        .FontSize(11)
+                        .HorizontalAlignment(Center)
+                        .FontColor(XLColor.FromArgb(0, 255, 255, 255))
+                        .BackgroundColor(XLColor.FromArgb(0, 68, 114, 196))
+                        .Border(All(Thin))
+                        .CellSize(ColWidth(colWidth));
                 }
                 yield return Go(NewRow);
-                yield return Cell(ps => ps.AddInteger(1).AddHorizontalAlignment(Center));
-                yield return Cell(ps => ps.AddString("Ford Fiesta"));
-                yield return Cell(ps => ps.AddString("Car Technical Details..."));
-                yield return Cell(ps => ps.AddString("AB12 CDE").AddHorizontalAlignment(Center));
+                yield return Cell().Integer(1).HorizontalAlignment(Center);
+                yield return Cell().String("Ford Fiesta");
+                yield return Cell().String("Car Technical Details...");
+                yield return Cell().String("AB12 CDE").HorizontalAlignment(Center);
             }
             Items().AsFile(TestFiles.PathFor("fIndividualCellSizing.xlsx"));
 
@@ -817,20 +823,20 @@ namespace UnitTests
             {
                 LoadOptions.DefaultGraphicEngine = new ClosedXML.Graphics.DefaultGraphicEngine("Liberation Sans");
             }
-            IEnumerable<CellProp> HeadingStyle(IEnumerable<CellProp> ps) =>
-                ps.AddBorder(Bottom(Medium)).AddFontEmphasis(Bold).AddFontEmphasis(Italic);
+            CellPropsBuilder HeadingStyle(CellPropsBuilder cell) =>
+                cell.Border(Bottom(Medium)).Bold().Italic();
             IEnumerable<Item> Items()
             {
                 foreach (var heading in new[] { "Month", "Letter Count" })
                 {
-                    yield return Cell(ps => HeadingStyle(ps).AddString(heading));
+                    yield return HeadingStyle(Cell()).String(heading);
                 }
                 yield return Go(NewRow);
                 for (var m = 1; m <= 12; m++)
                 {
                     var monthName = CultureInfo.GetCultureInfoByIetfLanguageTag("en-GB").DateTimeFormat.GetMonthName(m);
-                    yield return Cell(ps => ps.AddString(monthName));
-                    yield return Cell(ps => ps.AddInteger(monthName.Length));
+                    yield return Cell().String(monthName);
+                    yield return Cell().Integer(monthName.Length);
                     yield return Go(NewRow);
                 }
                 yield return AutoFit(AutoFitFactory.AllCols);
@@ -858,88 +864,88 @@ namespace UnitTests
                         ("Car Registration", 16.89),
                     })
                 {
-                    yield return Cell(ps => ps.AddString(heading)
-                        .AddFontEmphasis(Bold)
-                        .AddFontName("Calibri")
-                        .AddFontSize(11)
-                        .AddHorizontalAlignment(Center)
-                        .AddFontColor(XLColor.FromArgb(0, 255, 255, 255))
-                        .AddBackgroundColor(XLColor.FromArgb(0, 68, 114, 196))
-                        .AddBorder(All(Thin))
-                        .AddCellSize(ColWidth(colWidth)));
+                    yield return Cell().String(heading)
+                        .Bold()
+                        .FontName("Calibri")
+                        .FontSize(11)
+                        .HorizontalAlignment(Center)
+                        .FontColor(XLColor.FromArgb(0, 255, 255, 255))
+                        .BackgroundColor(XLColor.FromArgb(0, 68, 114, 196))
+                        .Border(All(Thin))
+                        .CellSize(ColWidth(colWidth));
                 }
                 yield return Go(NewRow);
-                yield return Cell(ps => ps.AddInteger(1)
-                        .AddHorizontalAlignment(HorizontalAlignmentFactory.Left)
-                        .AddVerticalAlignment(VerticalAlignmentFactory.TopMost)
-                        .AddName("ID"));
-                yield return Cell(ps => ps.AddString("Ford Fiesta")
-                        .AddHorizontalAlignment(Center)
-                        .AddVerticalAlignment(VerticalAlignmentFactory.Middle));
-                yield return Cell(ps => ps.AddString("Car Technical Details:")
-                        .AddNext(DownBy(1)));
-                yield return Cell(ps => ps.AddString("Technical Detail 1")
-                        .AddNext(DownBy(1)));
-                yield return Cell(ps => ps.AddString("Technical Detail 2")
-                        .AddNext(DownBy(1)));
-                yield return Cell(ps => ps.AddString("Technical Detail 3")
-                        .AddName("LastL"));
+                yield return Cell().Integer(1)
+                        .HorizontalAlignment(HorizontalAlignmentFactory.Left)
+                        .VerticalAlignment(VerticalAlignmentFactory.TopMost)
+                        .Name("ID");
+                yield return Cell().String("Ford Fiesta")
+                        .HorizontalAlignment(Center)
+                        .VerticalAlignment(VerticalAlignmentFactory.Middle);
+                yield return Cell().String("Car Technical Details:")
+                        .Next(DownBy(1));
+                yield return Cell().String("Technical Detail 1")
+                        .Next(DownBy(1));
+                yield return Cell().String("Technical Detail 2")
+                        .Next(DownBy(1));
+                yield return Cell().String("Technical Detail 3")
+                        .Name("LastL");
                 yield return Go(RC(3, 4));
-                yield return Cell(ps => ps.AddString("AB12 CDE")
-                            .AddHorizontalAlignment(HorizontalAlignmentFactory.Right)
-                            .AddVerticalAlignment(VerticalAlignmentFactory.Base)
-                            .AddName("Reg"));
+                yield return Cell().String("AB12 CDE")
+                            .HorizontalAlignment(HorizontalAlignmentFactory.Right)
+                            .VerticalAlignment(VerticalAlignmentFactory.Base)
+                            .Name("Reg");
                 yield return Go(RC(6, 4));
-                yield return Cell(ps => ps.AddName("RegEnd"));
+                yield return Cell().Name("RegEnd");
                 yield return Go(RC(7, 3));
-                yield return Cell(ps => ps.AddString("Another Technical Detail")
-                        .AddFontEmphasis(Italic)
-                        .AddVerticalAlignment(VerticalAlignmentFactory.Middle)
-                        .AddName("TD")
-                        .AddNext(Stay));
+                yield return Cell().String("Another Technical Detail")
+                        .Italic()
+                        .VerticalAlignment(VerticalAlignmentFactory.Middle)
+                        .Name("TD")
+                        .Next(Stay);
                 yield return Go(DownBy(1));
-                yield return Cell(ps => ps.AddName("info"));
+                yield return Cell().Name("info");
                 // Merging between named and specific cells
                 yield return MergeCells(ColRowLabel("B", 3), ColRowLabel("B", 6));
                 yield return MergeCells(NamedCell("ID"), ColRowLabel("A", 6));
                 yield return MergeCells(ColRowLabel("C", 7), NamedCell("info"));
                 yield return MergeCells(NamedCell("Reg"), NamedCell("RegEnd"));
                 yield return Go(RC(10, 1));
-                yield return Cell(ps => ps.AddString("Merging from a starting cell given a depth and span")
-                        .AddBackgroundColor(XLColor.FromArgb(0, 80, 180, 220))
-                        .AddFontEmphasis(Bold)
-                        .AddHorizontalAlignment(Center));
+                yield return Cell().String("Merging from a starting cell given a depth and span")
+                        .BackgroundColor(XLColor.FromArgb(0, 80, 180, 220))
+                        .Bold()
+                        .HorizontalAlignment(Center);
                 yield return MergeCells(ColRowLabel("A", 10), ColRowLabel("D", 10));
                 yield return Go(RC(12, 2));
-                yield return Cell(ps => ps.AddString("The components that make up a car are: ")
-                        .AddName("components")
-                        .AddHorizontalAlignment(HorizontalAlignmentFactory.Left)
-                        .AddVerticalAlignment(VerticalAlignmentFactory.TopMost)
-                        .AddBorder(BorderFactory.All(XLBorderStyleValues.MediumDashDot)));
+                yield return Cell().String("The components that make up a car are: ")
+                        .Name("components")
+                        .HorizontalAlignment(HorizontalAlignmentFactory.Left)
+                        .VerticalAlignment(VerticalAlignmentFactory.TopMost)
+                        .Border(BorderFactory.All(XLBorderStyleValues.MediumDashDot));
                 yield return Go(RC(12, 4));
-                yield return Cell(ps => ps.AddBorder(BorderFactory.All(XLBorderStyleValues.MediumDashDot)));
+                yield return Cell().Border(BorderFactory.All(XLBorderStyleValues.MediumDashDot));
                 yield return Go(RC(14, 4));
-                yield return Cell(ps => ps.AddBorder(BorderFactory.All(XLBorderStyleValues.MediumDashDot)));
+                yield return Cell().Border(BorderFactory.All(XLBorderStyleValues.MediumDashDot));
                 yield return Go(RC(15, 2));
-                yield return Cell(ps => ps.AddString("Road Tax")
-                        .AddHorizontalAlignment(Center)
-                        .AddVerticalAlignment(VerticalAlignmentFactory.Middle)
-                        .AddBorder(BorderFactory.All(XLBorderStyleValues.SlantDashDot)));
+                yield return Cell().String("Road Tax")
+                        .HorizontalAlignment(Center)
+                        .VerticalAlignment(VerticalAlignmentFactory.Middle)
+                        .Border(BorderFactory.All(XLBorderStyleValues.SlantDashDot));
                 yield return Go(RC(16, 2));
-                yield return Cell(ps => ps.AddBorder(BorderFactory.All(XLBorderStyleValues.SlantDashDot)));
+                yield return Cell().Border(BorderFactory.All(XLBorderStyleValues.SlantDashDot));
                 // Forward merging - cell name, cell contents, shading & top LH corner of border are retained
                 yield return MergeCells(NamedCell("components"), SpanDepth(3, 3));
                 yield return MergeCells(ColRowLabel("B", 15), SpanDepth(1, 2));
                 yield return Go(RC(17, 4));
-                yield return Cell(ps => ps.AddString("Insurance")
-                        .AddName("insurance") // NamedCells cannot begin with a number
-                        .AddBorder(BorderFactory.All(XLBorderStyleValues.Dashed)));
+                yield return Cell().String("Insurance")
+                        .Name("insurance") // NamedCells cannot begin with a number
+                        .Border(BorderFactory.All(XLBorderStyleValues.Dashed));
                 yield return Go(RC(17, 3));
-                yield return Cell(ps => ps.AddBorder(BorderFactory.All(XLBorderStyleValues.Dashed)));
+                yield return Cell().Border(BorderFactory.All(XLBorderStyleValues.Dashed));
                 yield return Go(RC(17, 2));
-                yield return Cell(ps => ps.AddBorder(BorderFactory.All(XLBorderStyleValues.Dashed)));
+                yield return Cell().Border(BorderFactory.All(XLBorderStyleValues.Dashed));
                 yield return Go(RC(16, 4));
-                yield return Cell(ps => ps.AddString("Signature"));
+                yield return Cell().String("Signature");
                 // Reverse Merging - original cell contents, cell name and cell shading are lost
                 // Only bottom RH corner of the border is retained
                 yield return MergeCells(SpanDepth(3, 1), NamedCell("insurance"));
@@ -974,17 +980,18 @@ namespace UnitTests
                 new JoiningInfo("Michael Nguyễn", 23, 61.2m, "2022-03-13"),
                 new JoiningInfo("Sofia Hernández", 58, 59.25m, "2022-03-15") };
 
-            // Style getters aren't Cell/Style builders, but they still take/return a plain CellProp
-            // seq, so the same fluent Add* extensions compose here too.
+            // Style getters aren't Cell/Style items themselves, just a CellProp list - Cell() still
+            // works as the builder here, ending in ToCellProps() instead of the usual implicit
+            // conversion to Item.
             IEnumerable<CellProp> CellStyleVertical(int index, string name) =>
-                index == 0 ? Enumerable.Empty<CellProp>().AddFontEmphasis(Bold)
-                : name == "Fees" ? Enumerable.Empty<CellProp>().AddFormatCode("$0.00")
-                : Enumerable.Empty<CellProp>();
+                index == 0 ? Cell().Bold().ToCellProps()
+                : name == "Fees" ? Cell().FormatCode("$0.00").ToCellProps()
+                : [];
 
             IEnumerable<CellProp> CellStyleHorizontal(int index, string name) =>
-                index == 0 ? Enumerable.Empty<CellProp>().AddBorder(BorderFactory.Bottom(Medium)).AddFontEmphasis(Bold)
-                : name == "Fees" ? Enumerable.Empty<CellProp>().AddFormatCode("$0.00")
-                : Enumerable.Empty<CellProp>();
+                index == 0 ? Cell().Border(BorderFactory.Bottom(Medium)).Bold().ToCellProps()
+                : name == "Fees" ? Cell().FormatCode("$0.00").ToCellProps()
+                : [];
 
             var items = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Vertical, CellStyleVertical);
             items.Append(AutoFit(AutoFitFactory.All)).AsFile(TestFiles.PathFor("fRecordSequenceVertical.xlsx"));
@@ -1043,32 +1050,33 @@ namespace UnitTests
         [Fact]
         public void RenderAsStreamBytes()
         {
-            var items = new Item[] { Cell(ps => ps.AddString("Hello world!")) };
+            Item[] items = [Cell().String("Hello world!")];
             var bytes = items.AsStreamBytes();
             Assert.True(bytes.Length > 0);
         }
         [Fact]
         public void DataTypes()
         {
-            var items = new Item[] {
-                Cell(ps => ps.AddString("String")),
-                Cell(ps => ps.AddString("string")),
+            Item[] items =
+            [
+                Cell().String("String"),
+                Cell().String("string"),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Integer")),
-                Cell(ps => ps.AddInteger(42)),
+                Cell().String("Integer"),
+                Cell().Integer(42),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Number")),
-                Cell(ps => ps.AddFloat(Math.PI)),
+                Cell().String("Number"),
+                Cell().Float(Math.PI),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Boolean")),
-                Cell(ps => ps.AddBoolean(false)),
+                Cell().String("Boolean"),
+                Cell().Boolean(false),
                 Go(NewRow),
-                Cell(ps => ps.AddString("DateTime")),
-                Cell(ps => ps.AddDateTime(new System.DateTime(1903, 12, 17))),
+                Cell().String("DateTime"),
+                Cell().DateTime(new System.DateTime(1903, 12, 17)),
                 Go(NewRow),
-                Cell(ps => ps.AddString("TimeSpan")),
-                Cell(ps => ps.AddTimeSpan(new System.TimeSpan(hours: 1, minutes: 2, seconds: 3)).AddFormatCode("hh:mm:ss")),
-            };
+                Cell().String("TimeSpan"),
+                Cell().TimeSpan(new System.TimeSpan(hours: 1, minutes: 2, seconds: 3)).FormatCode("hh:mm:ss"),
+            ];
             items.AsFile(TestFiles.PathFor("fDataTypes.xlsx"));
 
             using var wb = TestFiles.Open("fDataTypes.xlsx");
@@ -1085,43 +1093,44 @@ namespace UnitTests
         public void RenderingAsHtml()
         {
             bool IsHeader(int r, int c) => r == 0 || c == 0;
-            var items = new Item[] {
+            Item[] items =
+            [
                 Worksheet("Worksheet 1"),
-                Style(ps => ps.AddFontEmphasis(Bold)),
-                Cell(ps => ps.AddString("Item")),
-                Cell(ps => ps.AddString("Example")),
-                Style(ps => ps),
+                Style().Bold(),
+                Cell().String("Item"),
+                Cell().String("Example"),
+                Style(),
                 Go(NewRow),
-                Cell(ps => ps.AddString("String")),
-                Cell(ps => ps.AddString("string")),
+                Cell().String("String"),
+                Cell().String("string"),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Integer")),
-                Cell(ps => ps.AddInteger(42)),
+                Cell().String("Integer"),
+                Cell().Integer(42),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Number")),
-                Cell(ps => ps.AddFloat(Math.PI)),
+                Cell().String("Number"),
+                Cell().Float(Math.PI),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Boolean")),
-                Cell(ps => ps.AddBoolean(false)),
+                Cell().String("Boolean"),
+                Cell().Boolean(false),
                 Go(NewRow),
-                Cell(ps => ps.AddString("DateTime")),
-                Cell(ps => ps.AddDateTime(new System.DateTime(1903, 12, 17))),
+                Cell().String("DateTime"),
+                Cell().DateTime(new System.DateTime(1903, 12, 17)),
                 Go(NewRow),
-                Cell(ps => ps.AddString("TimeSpan")),
-                Cell(ps => ps.AddTimeSpan(new System.TimeSpan(hours: 1, minutes: 2, seconds: 3)).AddFormatCode("hh:mm:ss")),
+                Cell().String("TimeSpan"),
+                Cell().TimeSpan(new System.TimeSpan(hours: 1, minutes: 2, seconds: 3)).FormatCode("hh:mm:ss"),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Bold")),
-                Cell(ps => ps.AddString("I am bold").AddFontEmphasis(Bold)),
+                Cell().String("Bold"),
+                Cell().String("I am bold").Bold(),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Italic")),
-                Cell(ps => ps.AddString("I am Italic").AddFontEmphasis(Italic)),
+                Cell().String("Italic"),
+                Cell().String("I am Italic").Italic(),
                 Go(NewRow),
-                Cell(ps => ps.AddString("Underlined")),
-                Cell(ps => ps.AddString("I am underlined").AddFontEmphasis(Underline(XLFontUnderlineValues.Single))),
+                Cell().String("Underlined"),
+                Cell().String("I am underlined").Underline(XLFontUnderlineValues.Single),
                 Go(NewRow),
                 Worksheet("Worksheet 2"),
-                Cell(ps => ps.AddString("I am another table")),
-            };
+                Cell().String("I am another table"),
+            ];
 
             var htmlString = items.AsHtml(IsHeader);
 
@@ -1134,23 +1143,23 @@ namespace UnitTests
         [Fact]
         public void AutoFilterEnableOnly()
         {
-            var headings = new Item[]
-            {
-                Cell(ps => ps.AddString("StringCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("IntCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("FloatCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("DateTimeCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("BooleanCol").AddHorizontalAlignment(Center)),
+            Item[] headings =
+            [
+                Cell().String("StringCol").HorizontalAlignment(Center),
+                Cell().String("IntCol").HorizontalAlignment(Center),
+                Cell().String("FloatCol").HorizontalAlignment(Center),
+                Cell().String("DateTimeCol").HorizontalAlignment(Center),
+                Cell().String("BooleanCol").HorizontalAlignment(Center),
                 Go(NewRow)
-            };
+            ];
             var rows = (from i in Enumerable.Range(1, 5)
                        select new Item[]
                        {
-                           Cell(ps => ps.AddString($"String{i}")),
-                           Cell(ps => ps.AddInteger(i)),
-                           Cell(ps => ps.AddFloat(i + 0.1)),
-                           Cell(ps => ps.AddDateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i))),
-                           Cell(ps => ps.AddBoolean(i % 2 == 0)),
+                           Cell().String($"String{i}"),
+                           Cell().Integer(i),
+                           Cell().Float(i + 0.1),
+                           Cell().DateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i)),
+                           Cell().Boolean(i % 2 == 0),
                            Go(NewRow)
                        }).SelectMany(x => x);
             IEnumerable<Item> items = [.. headings, .. rows, AutoFit(AutoFitFactory.All), AutoFilter([EnableOnly(RangeUsed)])];
@@ -1166,23 +1175,23 @@ namespace UnitTests
         [Fact]
         public void AutoFilterCompound()
         {
-            var headings = new Item[]
-            {
-                Cell(ps => ps.AddString("StringCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("IntCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("FloatCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("DateTimeCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("BooleanCol").AddHorizontalAlignment(Center)),
+            Item[] headings =
+            [
+                Cell().String("StringCol").HorizontalAlignment(Center),
+                Cell().String("IntCol").HorizontalAlignment(Center),
+                Cell().String("FloatCol").HorizontalAlignment(Center),
+                Cell().String("DateTimeCol").HorizontalAlignment(Center),
+                Cell().String("BooleanCol").HorizontalAlignment(Center),
                 Go(NewRow)
-            };
+            ];
             var rows = (from i in Enumerable.Range(1, 5)
                         select new Item[]
                         {
-                           Cell(ps => ps.AddString($"String{i}")),
-                           Cell(ps => ps.AddInteger(i)),
-                           Cell(ps => ps.AddFloat(i + 0.1)),
-                           Cell(ps => ps.AddDateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i))),
-                           Cell(ps => ps.AddBoolean(i % 2 == 0)),
+                           Cell().String($"String{i}"),
+                           Cell().Integer(i),
+                           Cell().Float(i + 0.1),
+                           Cell().DateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i)),
+                           Cell().Boolean(i % 2 == 0),
                            Go(NewRow)
                         }).SelectMany(x => x);
             IEnumerable<Item> items =
@@ -1206,23 +1215,23 @@ namespace UnitTests
 
         static Item[] MakeFreezePanesHeadingsAndRows()
         {
-            var headings = new Item[]
-            {
-                Cell(ps => ps.AddString("StringCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("IntCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("FloatCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("DateTimeCol").AddHorizontalAlignment(Center)),
-                Cell(ps => ps.AddString("BooleanCol").AddHorizontalAlignment(Center)),
+            Item[] headings =
+            [
+                Cell().String("StringCol").HorizontalAlignment(Center),
+                Cell().String("IntCol").HorizontalAlignment(Center),
+                Cell().String("FloatCol").HorizontalAlignment(Center),
+                Cell().String("DateTimeCol").HorizontalAlignment(Center),
+                Cell().String("BooleanCol").HorizontalAlignment(Center),
                 Go(NewRow)
-            };
+            ];
             var rows = (from i in Enumerable.Range(1, 5)
                         select new Item[]
                         {
-                           Cell(ps => ps.AddString($"String{i}")),
-                           Cell(ps => ps.AddInteger(i)),
-                           Cell(ps => ps.AddFloat(i + 0.1)),
-                           Cell(ps => ps.AddDateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i))),
-                           Cell(ps => ps.AddBoolean(i % 2 == 0)),
+                           Cell().String($"String{i}"),
+                           Cell().Integer(i),
+                           Cell().Float(i + 0.1),
+                           Cell().DateTime(new System.DateTime(2017, 7, 15, 5, 33, 0).AddMinutes(i)),
+                           Cell().Boolean(i % 2 == 0),
                            Go(NewRow)
                         }).SelectMany(x => x);
             return [.. headings, .. rows];

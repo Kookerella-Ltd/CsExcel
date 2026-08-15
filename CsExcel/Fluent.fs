@@ -2,60 +2,54 @@ namespace CsExcel.Fluent
 
 open System.Runtime.CompilerServices
 open FsExcel
-open System.Linq
 open System
 open CsExcel
 open ClosedXML.Excel
 
-[<Extension>]
-type CellPropSeqExtensions =
-    [<Extension>]
-// need to work out the efficiency here
-    static member AddString(this : CellProp seq, s : string) = this.Prepend(CellProp.String s)
-    [<Extension>]
-    static member AddFloat(this : CellProp seq, f : float) = this.Prepend(CellProp.Float f)
-    [<Extension>]
-    static member AddInteger(this : CellProp seq, i : int) = this.Prepend(CellProp.Integer i)
-    [<Extension>]
-    static member AddBoolean(this : CellProp seq, b : bool) = CellProp.Boolean b |> this.Prepend
-    [<Extension>]
-    static member AddDateTime(this : CellProp seq, dt : DateTime) = CellProp.DateTime dt |> this.Prepend
-    [<Extension>]
-    static member AddTimeSpan(this : CellProp seq, ts) = CellProp.TimeSpan ts |> this.Prepend
-    [<Extension>]
-    static member AddFormulaA1(this : CellProp seq, formula : string) = CellProp.FormulaA1 formula |> this.Prepend
-    [<Extension>]
-    static member AddNext(this : CellProp seq, pos) = CellProp.Next pos |> this.Prepend
-    [<Extension>]
-    static member AddFontEmphasis(this : CellProp seq, emp) = CellProp.FontEmphasis emp |> this.Prepend
-    [<Extension>]
-    static member AddFontName(this : CellProp seq, name) = CellProp.FontName name |> this.Prepend
-    [<Extension>]
-    static member AddFontSize(this : CellProp seq, size) = CellProp.FontSize size |> this.Prepend
-    [<Extension>]
-    static member AddFontColor(this : CellProp seq, color) = CellProp.FontColor color |> this.Prepend
-    [<Extension>]
-    static member AddBorder(this : CellProp seq, border) = CellProp.Border border |> this.Prepend
-    [<Extension>]
-    static member AddBorderColor(this : CellProp seq, color) = CellProp.BorderColor color |> this.Prepend
-    [<Extension>]
-    static member AddBackgroundColor(this : CellProp seq, color) = CellProp.BackgroundColor color |> this.Prepend
-    [<Extension>]
-    static member AddHorizontalAlignment(this : CellProp seq, alignment) = CellProp.HorizontalAlignment alignment |> this.Prepend
-    [<Extension>]
-    static member AddVerticalAlignment(this : CellProp seq, alignment) = CellProp.VerticalAlignment alignment |> this.Prepend
-    [<Extension>]
-    static member AddTextRotation(this : CellProp seq, rotation) = CellProp.TextRotation rotation |> this.Prepend
-    [<Extension>]
-    static member AddWrapText(this : CellProp seq, wrap) = CellProp.WrapText wrap |> this.Prepend
-    [<Extension>]
-    static member AddFormatCode(this : CellProp seq, formatCode) = CellProp.FormatCode formatCode |> this.Prepend
-    [<Extension>]
-    static member AddName(this : CellProp seq, name) = CellProp.Name name |> this.Prepend
-    [<Extension>]
-    static member AddScopedName(this : CellProp seq, name) = CellProp.ScopedName name |> this.Prepend
-    [<Extension>]
-    static member AddCellSize(this : CellProp seq, size) = CellProp.CellSize size |> this.Prepend
+// A mutable, chainable builder for the props of a single Cell or Style item - the C#-native
+// alternative to composing an immutable CellProp seq by hand. `toItem` is which Item case the
+// finished prop list becomes: Item.Cell for Cell(), Item.Style for Style(). Method names drop the
+// "Add" prefix (plain .String(...) rather than .AddString(...)) and Bold/Italic/StrikeThrough are
+// zero-arg calls rather than values imported from FontEmphasisFactory, matching how a C# fluent
+// builder is normally shaped.
+type CellPropsBuilder(toItem : CellProp list -> Item) =
+    let props = ResizeArray<CellProp>()
+    member private this.Add(p : CellProp) =
+        props.Add p
+        this
+    member this.String(s : string) = this.Add(CellProp.String s)
+    member this.Float(f : float) = this.Add(CellProp.Float f)
+    member this.Integer(i : int) = this.Add(CellProp.Integer i)
+    member this.Boolean(b : bool) = this.Add(CellProp.Boolean b)
+    member this.DateTime(dt : DateTime) = this.Add(CellProp.DateTime dt)
+    member this.TimeSpan(ts : TimeSpan) = this.Add(CellProp.TimeSpan ts)
+    member this.FormulaA1(formula : string) = this.Add(CellProp.FormulaA1 formula)
+    member this.Next(pos : Position) = this.Add(CellProp.Next pos)
+    member this.Bold() = this.Add(CellProp.FontEmphasis FontEmphasis.Bold)
+    member this.Italic() = this.Add(CellProp.FontEmphasis FontEmphasis.Italic)
+    member this.StrikeThrough() = this.Add(CellProp.FontEmphasis FontEmphasis.StrikeThrough)
+    member this.Underline(style : XLFontUnderlineValues) = this.Add(CellProp.FontEmphasis(FontEmphasis.Underline style))
+    member this.FontName(name : string) = this.Add(CellProp.FontName name)
+    member this.FontSize(size : float) = this.Add(CellProp.FontSize size)
+    member this.FontColor(color : XLColor) = this.Add(CellProp.FontColor color)
+    member this.Border(border : Border) = this.Add(CellProp.Border border)
+    member this.BorderColor(color : BorderColor) = this.Add(CellProp.BorderColor color)
+    member this.BackgroundColor(color : XLColor) = this.Add(CellProp.BackgroundColor color)
+    member this.HorizontalAlignment(alignment : HorizontalAlignment) = this.Add(CellProp.HorizontalAlignment alignment)
+    member this.VerticalAlignment(alignment : VerticalAlignment) = this.Add(CellProp.VerticalAlignment alignment)
+    member this.TextRotation(rotation : int) = this.Add(CellProp.TextRotation rotation)
+    member this.WrapText(wrap : bool) = this.Add(CellProp.WrapText wrap)
+    member this.FormatCode(formatCode : string) = this.Add(CellProp.FormatCode formatCode)
+    member this.Name(name : string) = this.Add(CellProp.Name name)
+    member this.ScopedName(name : string, scope : NameScope) = this.Add(CellProp.ScopedName(name, scope))
+    member this.CellSize(size : Size) = this.Add(CellProp.CellSize size)
+    member this.ToItem() = props |> List.ofSeq |> toItem
+    /// For the rarer case of building a bare CellProp list rather than a full Item - e.g. a
+    /// per-column style callback passed to CsExcel.Table.fromInstance/fromIEnumerable.
+    member this.ToCellProps() : CellProp seq = upcast props
+    /// Lets a builder be used anywhere an Item is expected (array/collection-expression elements,
+    /// `yield return`, method arguments) without an explicit terminal call.
+    static member op_Implicit(builder : CellPropsBuilder) : Item = builder.ToItem()
 
 [<Extension>]
 type RenderExtensions =
@@ -76,12 +70,8 @@ type RenderExtensions =
         Render.AsWorkBook(cells)
 
 module ItemFactory =
-    let Cell(fprops : Func<CellProp seq,CellProp seq>) =
-        fprops.Invoke [||]
-        |> ItemFactory.Cell
-    let Style(fprops : Func<CellProp seq,CellProp seq>) =
-        fprops.Invoke [||]
-        |> ItemFactory.Style
+    let Cell() = CellPropsBuilder(Item.Cell)
+    let Style() = CellPropsBuilder(Item.Style)
     let AutoFilter(filters : AutoFilter seq) =
         filters
         |> ItemFactory.AutoFilter
