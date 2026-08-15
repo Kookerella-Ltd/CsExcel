@@ -210,9 +210,11 @@ module Table =
             | :? decimal as d -> CellProp.Float (float d)
             | value -> CellProp.String (string value)
 
-        let body (getCellStyle : string -> CellProp list) (x : obj) =
-            x.GetType()
-            |> Fields.ofType
+        // fields is always derived from the declared type 'T, both here and in `header` below - never
+        // from the runtime type of an individual instance - so a body value and its header always
+        // line up, even when 'T is a base type/interface and some instances are a derived subtype.
+        let body (fields : PropertyInfo[]) (getCellStyle : string -> CellProp list) (x : obj) =
+            fields
             |> Array.map (fun p -> p.Name, p.GetValue(x))
             |> Array.map (fun (name, value) ->
                 let style = getCellStyle name
@@ -220,9 +222,8 @@ module Table =
                 Cell [ content; yield! style; Next Stay ])
             |> List.ofArray
 
-        let header<'T> (getCellStyle : string -> CellProp list) =
-            typeof<'T>
-            |> Fields.ofType
+        let header (fields : PropertyInfo[]) (getCellStyle : string -> CellProp list) =
+            fields
             |> Array.map (fun p ->
                 let style = getCellStyle p.Name
                 Cell [ CellProp.String p.Name; yield! style; Next Stay ])
@@ -230,8 +231,9 @@ module Table =
 
     let fromInstance<'T>(x : 'T,direction : Direction,getCellStyle : CellStyleGetterDelegate) : Item seq =
         let getCellStyleF i s = getCellStyle.Invoke(i,s) |> Seq.toList
-        let headerCells = Cells.header<'T> (getCellStyleF 0)
-        let bodyCells = box x |> Cells.body (getCellStyleF 1)
+        let fields = Fields.ofType typeof<'T>
+        let headerCells = Cells.header fields (getCellStyleF 0)
+        let bodyCells = box x |> Cells.body fields (getCellStyleF 1)
         match direction with
         | Horizontal ->
             [
@@ -260,18 +262,21 @@ module Table =
     let fromIEnumerable<'T>(xs : 'T seq,direction : Direction,getCellStyle : CellStyleGetterSeqDelegate) : Item seq =
         let getCellStyleF i s = getCellStyle.Invoke(i,s) |> Seq.toList
         let xs = xs |> Array.ofSeq
-        let headerCells = Cells.header<'T> (getCellStyleF 0)
+        let fields = Fields.ofType typeof<'T>
+        let headerCells = Cells.header fields (getCellStyleF 0)
         match direction with
         | Vertical ->
             [
-                let depth = xs.Length + 1
+                // depth is how far each column has to travel back up to row 1 before moving right to
+                // the next column - that's the number of fields per column, not the number of records.
+                let depth = headerCells.Length
                 for headerCell in headerCells do
                     headerCell
                     Go (DownBy 1)
                 Go (UpBy depth)
                 Go (RightBy 1)
                 for i, x in xs |> Seq.indexed do
-                    for bodyCell in box x |> Cells.body (getCellStyleF (i+1)) do
+                    for bodyCell in box x |> Cells.body fields (getCellStyleF (i+1)) do
                         bodyCell
                         Go (DownBy 1)
                     Go (UpBy depth)
@@ -286,7 +291,7 @@ module Table =
                     Go (RightBy 1)
                 Go NewRow
                 for i, x in xs |> Seq.indexed do
-                    for bodyCell in box x |> Cells.body (getCellStyleF (i+1)) do
+                    for bodyCell in box x |> Cells.body fields (getCellStyleF (i+1)) do
                         bodyCell
                         Go (RightBy 1)
                     Go NewRow

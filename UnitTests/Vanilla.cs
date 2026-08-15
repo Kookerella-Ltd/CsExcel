@@ -28,7 +28,10 @@ namespace UnitTests
                     Cell([ String("Hello World") ])
                 };
 
-            CsExcel.Render.AsFile(cells, """c:\temp\helloWorld.xlsx""");
+            CsExcel.Render.AsFile(cells, TestFiles.PathFor("helloWorld.xlsx"));
+
+            using var wb = TestFiles.Open("helloWorld.xlsx");
+            Assert.Equal("Hello World", wb.Worksheet(1).Cell(1, 1).GetString());
         }
         [Fact]
         public void MultipleCells()
@@ -36,7 +39,15 @@ namespace UnitTests
             var cells =
                 from n in Enumerable.Range(1, 10)
                 select Cell([Integer(n)]);
-            CsExcel.Render.AsFile(cells, """c:\temp\MultipleCells.xlsx""");
+            CsExcel.Render.AsFile(cells, TestFiles.PathFor("MultipleCells.xlsx"));
+
+            using var wb = TestFiles.Open("MultipleCells.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:J1", ws.RangeUsed().RangeAddress.ToString());
+            for (var i = 1; i <= 10; i++)
+            {
+                Assert.Equal(i, ws.Cell(1, i).GetValue<int>());
+            }
         }
         [Fact]
         public void VerticalMovement()
@@ -50,7 +61,14 @@ namespace UnitTests
                         Next(DownBy(1))
                     ]
                 );
-            CsExcel.Render.AsFile(cells, """c:\temp\VerticalMovement.xlsx""");
+            CsExcel.Render.AsFile(cells, TestFiles.PathFor("VerticalMovement.xlsx"));
+
+            using var wb = TestFiles.Open("VerticalMovement.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:A12", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("January", ws.Cell(1, 1).GetString());
+            Assert.Equal("May", ws.Cell(5, 1).GetString());
+            Assert.Equal("December", ws.Cell(12, 1).GetString());
         }
         [Fact]
         public void VerticalMovement2()
@@ -65,7 +83,15 @@ namespace UnitTests
                     yield return Cell([Integer(monthName.Length), Next(PositionFactory.NewRow)]);
                 }
             };
-            CsExcel.Render.AsFile(Cells(), """c:\temp\VerticalMovement2.xlsx""");
+            CsExcel.Render.AsFile(Cells(), TestFiles.PathFor("VerticalMovement2.xlsx"));
+
+            using var wb = TestFiles.Open("VerticalMovement2.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:B12", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("January", ws.Cell(1, 1).GetString());
+            Assert.Equal(7, ws.Cell(1, 2).GetValue<int>());
+            Assert.Equal("December", ws.Cell(12, 1).GetString());
+            Assert.Equal(8, ws.Cell(12, 2).GetValue<int>());
         }
         [Fact]
         public void VerticalMovement3()
@@ -80,7 +106,15 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             };
-            CsExcel.Render.AsFile(Cells(), """c:\temp\VerticalMovement3.xlsx""");
+            CsExcel.Render.AsFile(Cells(), TestFiles.PathFor("VerticalMovement3.xlsx"));
+
+            using var wb = TestFiles.Open("VerticalMovement3.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:B12", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("January", ws.Cell(1, 1).GetString());
+            Assert.Equal(7, ws.Cell(1, 2).GetValue<int>());
+            Assert.Equal("December", ws.Cell(12, 1).GetString());
+            Assert.Equal(8, ws.Cell(12, 2).GetValue<int>());
         }
         [Fact]
         public void Indentation()
@@ -96,7 +130,13 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             };
-            CsExcel.Render.AsFile(Cells(), """c:\temp\Indentation.xlsx""");
+            CsExcel.Render.AsFile(Cells(), TestFiles.PathFor("Indentation.xlsx"));
+
+            using var wb = TestFiles.Open("Indentation.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("B1:C12", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("January", ws.Cell(1, 2).GetString());
+            Assert.Equal("December", ws.Cell(12, 2).GetString());
         }
         [Fact]
         public void BorderAndFontStyling()
@@ -135,7 +175,17 @@ namespace UnitTests
                 }
             };
 
-            CsExcel.Render.AsFile(Items(), """c:\temp\BorderAndFontStyling.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("BorderAndFontStyling.xlsx"));
+
+            using var wb = TestFiles.Open("BorderAndFontStyling.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:B13", ws.RangeUsed().RangeAddress.ToString());
+            Assert.True(ws.Cell(1, 1).Style.Font.Bold);
+            Assert.True(ws.Cell(1, 1).Style.Font.Italic);
+            Assert.Equal("May", ws.Cell(6, 1).GetString());
+            Assert.True(ws.Cell(6, 1).Style.Font.Strikethrough);
+            Assert.False(ws.Cell(2, 1).Style.Font.Strikethrough);
+            Assert.Equal(XLFontUnderlineValues.DoubleAccounting, ws.Cell(2, 1).Style.Font.Underline);
         }
         [Fact]
         public void BorderAndFontStyling2()
@@ -178,14 +228,24 @@ namespace UnitTests
                 }
             };
 
-            CsExcel.Render.AsFile(Items(), """c:\temp\BorderAndFontStyling.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("BorderAndFontStyling2.xlsx"));
+
+            using var wb = TestFiles.Open("BorderAndFontStyling2.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:B13", ws.RangeUsed().RangeAddress.ToString());
+            Assert.True(ws.Cell(1, 1).Style.Font.Bold);
+            Assert.True(ws.Cell(1, 1).Style.Font.Italic);
+            Assert.Equal("May", ws.Cell(6, 1).GetString());
+            Assert.True(ws.Cell(6, 1).Style.Font.Strikethrough);
         }
 
         [Fact]
         public void FontAndNameSize()
         {
+            // Materialized once (rather than left as a lazy query) so the render pass below and the
+            // assertions afterward are guaranteed to see the exact same 20 fonts in the same order.
             var fontNames =
-                SixLabors.Fonts.SystemFonts.Collection.Families.Select((fontFamily, i) => (fontFamily.Name, i)).OrderBy(f => f.Item1).Take(20);
+                SixLabors.Fonts.SystemFonts.Collection.Families.Select((fontFamily, i) => (fontFamily.Name, i)).OrderBy(f => f.Item1).Take(20).ToList();
             IEnumerable<Item> Items()
             {
                 foreach (var (fontName, i) in fontNames)
@@ -199,7 +259,19 @@ namespace UnitTests
                 }
                 Go(PositionFactory.NewRow);
             };
-            CsExcel.Render.AsFile(Items(), """c:\temp\FontAndNameSize.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("FontAndNameSize.xlsx"));
+
+            using var wb = TestFiles.Open("FontAndNameSize.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal(20, fontNames.Count);
+            for (var col = 0; col < fontNames.Count; col++)
+            {
+                var (name, i) = fontNames[col];
+                var cell = ws.Cell(1, col + 1);
+                Assert.Equal(name, cell.GetString());
+                Assert.Equal(name, cell.Style.Font.FontName);
+                Assert.Equal(10 + (i * 2), cell.Style.Font.FontSize);
+            }
         }
 
         [Fact]
@@ -232,7 +304,12 @@ namespace UnitTests
                     CellPropFactory.WrapText(true),
                 ]),
             ];
-            CsExcel.Render.AsFile(items, """c:\temp\WrapText.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("WrapText.xlsx"));
+
+            using var wb = TestFiles.Open("WrapText.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.False(ws.Cell(1, 2).Style.Alignment.WrapText);
+            Assert.True(ws.Cell(2, 2).Style.Alignment.WrapText);
         }
         [Fact]
         public void TextRotation()
@@ -281,7 +358,15 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\TextRotation.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("TextRotation.xlsx"));
+
+            using var wb = TestFiles.Open("TextRotation.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("Category 1", ws.Cell(1, 2).GetString());
+            Assert.Equal(45, ws.Cell(1, 2).Style.Alignment.TextRotation);
+            Assert.Equal("Supplier 1", ws.Cell(2, 1).GetString());
+            Assert.Equal(GetPerformance(1, 1), ws.Cell(2, 2).GetString());
+            Assert.Equal(GetPerformance(10, 8), ws.Cell(9, 11).GetString());
         }
         static class RandomGenerator
         {
@@ -329,7 +414,26 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             };
-            CsExcel.Render.AsFile(Items(), """c:\temp\NumberFormattingAndAlignment.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("NumberFormattingAndAlignment.xlsx"));
+
+            // Price/Count come from RandomGenerator, whose state is shared (and thus order-dependent)
+            // across every test that uses it - assert structure/format/range rather than exact values.
+            using var wb = TestFiles.Open("NumberFormattingAndAlignment.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:C4", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("Stock Item", ws.Cell(1, 1).GetString());
+            Assert.Equal("Price", ws.Cell(1, 2).GetString());
+            Assert.Equal("Count", ws.Cell(1, 3).GetString());
+            var items = new[] { "Apples", "Oranges", "Pears" };
+            for (var i = 0; i < items.Length; i++)
+            {
+                var row = i + 2;
+                Assert.Equal(items[i], ws.Cell(row, 1).GetString());
+                Assert.Equal("$0.00", ws.Cell(row, 2).Style.NumberFormat.Format);
+                Assert.InRange(ws.Cell(row, 2).GetValue<double>(), 0.0, 1000.0);
+                Assert.Equal("#,##0", ws.Cell(row, 3).Style.NumberFormat.Format);
+                Assert.InRange(ws.Cell(row, 3).GetValue<int>(), 0, 99);
+            }
         }
         [Fact]
         public void Formulae()
@@ -363,7 +467,22 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             };
-            CsExcel.Render.AsFile(Items(), """c:\temp\Formulae.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("Formulae.xlsx"));
+
+            using var wb = TestFiles.Open("Formulae.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:D4", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("Total", ws.Cell(1, 4).GetString());
+            var items = new[] { "Apples", "Oranges", "Pears" };
+            for (var i = 0; i < items.Length; i++)
+            {
+                var row = i + 2;
+                Assert.Equal(items[i], ws.Cell(row, 1).GetString());
+                Assert.Equal($"B{row}*C{row}", ws.Cell(row, 4).FormulaA1);
+                Assert.Equal("$#,##0.00", ws.Cell(row, 4).Style.NumberFormat.Format);
+                var expectedTotal = ws.Cell(row, 2).GetValue<double>() * ws.Cell(row, 3).GetValue<int>();
+                Assert.Equal(expectedTotal, ws.Cell(row, 4).GetValue<double>(), precision: 6);
+            }
         }
         [Fact]
         public void Color()
@@ -405,7 +524,22 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\Color.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("Color.xlsx"));
+
+            using var wb = TestFiles.Open("Color.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:I89", ws.RangeUsed().RangeAddress.ToString());
+            var a1 = ws.Cell(1, 1);
+            Assert.Equal("R=0;G=0;B=0", a1.GetString());
+            // the very first cell is left uncolored, since the API refuses to fill a cell with
+            // black if its font is also black - so it keeps ClosedXML's default (indexed, unset) fill.
+            Assert.Equal(XLColor.FromArgb(0, 0, 0, 0), a1.Style.Font.FontColor);
+            Assert.Equal(XLColorType.Indexed, a1.Style.Fill.BackgroundColor.ColorType);
+            var b1 = ws.Cell(1, 2);
+            Assert.Equal("R=0;G=0;B=32", b1.GetString());
+            Assert.Equal(XLColor.FromArgb(0, 32, 0, 0), b1.Style.Font.FontColor);
+            Assert.Equal(XLColor.FromArgb(0, 0, 0, 32), b1.Style.Fill.BackgroundColor);
+            Assert.Equal(XLBorderStyleValues.Thick, b1.Style.Border.TopBorder);
         }
         [Fact]
         public void RangeStyles()
@@ -432,7 +566,21 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             };
-            CsExcel.Render.AsFile(Items(), """c:\temp\RangeStyles.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("RangeStyles.xlsx"));
+
+            using var wb = TestFiles.Open("RangeStyles.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:C4", ws.RangeUsed().RangeAddress.ToString());
+            Assert.True(ws.Cell(1, 1).Style.Font.Bold);
+            // Style sets an ambient "current style" applied going forward, not retroactively over a
+            // range - so "Apples" (the first cell after the headings) still carries the heading's
+            // bold+italic, since it's placed before the loop resets the style to italic-only.
+            Assert.True(ws.Cell(2, 1).Style.Font.Bold);
+            Assert.True(ws.Cell(2, 1).Style.Font.Italic);
+            Assert.False(ws.Cell(2, 2).Style.Font.Bold);
+            Assert.True(ws.Cell(2, 2).Style.Font.Italic);
+            Assert.False(ws.Cell(3, 1).Style.Font.Bold);
+            Assert.False(ws.Cell(3, 1).Style.Font.Italic);
         }
         [Fact]
         public void AddingABorderToMergedCells()
@@ -483,7 +631,22 @@ namespace UnitTests
                     ColorBorder(BorderColorFactory.All(XLColor.FromArgb(0, 68, 114, 196)))
                 ]);
             };
-            CsExcel.Render.AsFile(Items(), """c:\temp\AddingABorderToMergedCells.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("AddingABorderToMergedCells.xlsx"));
+
+            using var wb = TestFiles.Open("AddingABorderToMergedCells.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A2:D7", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("ID", ws.Cell(2, 1).GetString());
+            Assert.Equal(1, ws.Cell(3, 1).GetValue<int>());
+            Assert.Equal("Ford Fiesta", ws.Cell(3, 2).GetString());
+            Assert.Equal("AB12 CDE", ws.Cell(3, 4).GetString());
+            Assert.Equal("Another Technical Detail", ws.Cell(7, 3).GetString());
+            var mergedRanges = ws.MergedRanges.Select(m => m.RangeAddress.ToString()).ToHashSet();
+            Assert.Contains("A3:A6", mergedRanges);
+            Assert.Contains("B3:B6", mergedRanges);
+            Assert.Contains("D3:D6", mergedRanges);
+            Assert.Contains("C7:C8", mergedRanges);
+            Assert.Equal(XLBorderStyleValues.Thin, ws.Cell(3, 1).Style.Border.TopBorder);
         }
         [Fact]
         public void AbsolutePositioning()
@@ -498,7 +661,15 @@ namespace UnitTests
                     Cell([String("R6C5")]),
                     Cell([String("R6C6")])
                 };
-            CsExcel.Render.AsFile(items, """c:\temp\AbsolutePositioning.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("AbsolutePositioning.xlsx"));
+
+            using var wb = TestFiles.Open("AbsolutePositioning.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("C1:F6", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("Col 3", ws.Cell(1, 3).GetString());
+            Assert.Equal("Row 4", ws.Cell(4, 4).GetString());
+            Assert.Equal("R6C5", ws.Cell(6, 5).GetString());
+            Assert.Equal("R6C6", ws.Cell(6, 6).GetString());
         }
         [Fact]
         public void AbsolutePositionin2()
@@ -511,7 +682,15 @@ namespace UnitTests
                     yield return Go(DownBy(i));
                 }
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\AbsolutePositioning2.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("AbsolutePositioning2.xlsx"));
+
+            using var wb = TestFiles.Open("AbsolutePositioning2.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal(1, ws.Cell(1, 1).GetValue<int>());
+            Assert.Equal(2, ws.Cell(2, 1).GetValue<int>());
+            Assert.Equal(3, ws.Cell(4, 1).GetValue<int>());
+            Assert.Equal(4, ws.Cell(7, 1).GetValue<int>());
+            Assert.Equal(5, ws.Cell(11, 1).GetValue<int>());
         }
         [Fact]
         public void NamedCells()
@@ -527,7 +706,14 @@ namespace UnitTests
                     CellPropFactory.ScopedName("Email",NameScope.Workbook),
                 ])
             };
-            CsExcel.Render.AsFile(items, """c:\temp\NamedCells.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("NamedCells.xlsx"));
+
+            using var wb = TestFiles.Open("NamedCells.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("JohnDoe", ws.Cell("A1").GetString());
+            // A plain Name(...) is worksheet-scoped; ScopedName(..., NameScope.Workbook) is workbook-scoped.
+            Assert.Equal("JohnDoe", ws.NamedRange("Username").Ranges.First().FirstCell().GetString());
+            Assert.Equal("john.doe@company.com", wb.NamedRange("Email").Ranges.First().FirstCell().GetString());
         }
 
         static IEnumerable<Item> MakeWorksheetTabsItems()
@@ -593,7 +779,15 @@ namespace UnitTests
         [Fact]
         public void WorksheetsTabs()
         {
-            CsExcel.Render.AsFile(MakeWorksheetTabsItems(), """c:\temp\WorksheetsTabs.xlsx""");
+            CsExcel.Render.AsFile(MakeWorksheetTabsItems(), TestFiles.PathFor("WorksheetsTabs.xlsx"));
+
+            using var wb = TestFiles.Open("WorksheetsTabs.xlsx");
+            Assert.Equal(["English (United Kingdom)", "українська"], wb.Worksheets.Select(w => w.Name));
+            var british = wb.Worksheet("English (United Kingdom)");
+            Assert.Equal("January", british.Cell(1, 1).GetString());
+            Assert.Equal("Nov", british.Cell(23, 1).GetString());
+            var ukrainian = wb.Worksheet("українська");
+            Assert.Equal("січень", ukrainian.Cell(1, 1).GetString());
         }
         [Fact]
         public void InsertingBlankRows()
@@ -623,7 +817,16 @@ namespace UnitTests
                     yield return Go(PositionFactory.NewRow);
                 }
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\InsertingBlankRows.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("InsertingBlankRows.xlsx"));
+
+            using var wb = TestFiles.Open("InsertingBlankRows.xlsx");
+            var ukrainian = wb.Worksheet(ukrainianCultureNativeName);
+            // The rows inserted above on the British sheet must shift the formula's row reference
+            // from B1 to B13 - this is the whole point of the test.
+            Assert.Equal($"'{britishCultureNativeName}'!B13*2", ukrainian.Cell(1, 3).FormulaA1);
+            var british = wb.Worksheet(britishCultureNativeName);
+            Assert.Equal("Vintagearious", british.Cell(1, 1).GetString());
+            Assert.Equal("January", british.Cell(13, 1).GetString());
         }
         [Fact]
         public void ColumnWidthsAndRowHeightsForAllCells()
@@ -641,7 +844,15 @@ namespace UnitTests
                 yield return SizeAll(ColWidth(5));
                 yield return SizeAll(RowHeight(20));
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\ColumnWidthsAndRowHeightsForAllCells.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("ColumnWidthsAndRowHeightsForAllCells.xlsx"));
+
+            using var wb = TestFiles.Open("ColumnWidthsAndRowHeightsForAllCells.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:M12", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal(0, ws.Cell(1, 1).GetValue<int>());
+            Assert.Equal(24, ws.Cell(2, 13).GetValue<int>());
+            Assert.Equal(5.0, ws.Column(1).Width, precision: 2);
+            Assert.Equal(20.0, ws.Row(1).Height, precision: 2);
         }
         [Fact]
         public void IndividualCellSizing()
@@ -676,7 +887,16 @@ namespace UnitTests
                 yield return Cell([String("Car Technical Details...")]);
                 yield return Cell([String("AB12 CDE"), HorizontalAlignment(Center)]);
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\IndividualCellSizing.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("IndividualCellSizing.xlsx"));
+
+            using var wb = TestFiles.Open("IndividualCellSizing.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A2:D3", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("ID", ws.Cell(2, 1).GetString());
+            Assert.Equal(1, ws.Cell(3, 1).GetValue<int>());
+            Assert.Equal("Ford Fiesta", ws.Cell(3, 2).GetString());
+            Assert.Equal(3.22, ws.Column(1).Width, precision: 2);
+            Assert.Equal(49.33, ws.Column(3).Width, precision: 2);
         }
         [Fact]
         public void Autofitting()
@@ -706,7 +926,14 @@ namespace UnitTests
                 }
                 yield return AutoFit(AutoFitFactory.AllCols);
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\Autofitting.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("Autofitting.xlsx"));
+
+            using var wb = TestFiles.Open("Autofitting.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:B13", ws.RangeUsed().RangeAddress.ToString());
+            // AutoFit should have made both columns wider than ClosedXML's 8.43 default.
+            Assert.True(ws.Column(1).Width > 8.43);
+            Assert.True(ws.Column(2).Width > 8.43);
         }
         [Fact]
         void MergingCellsAndVerticalAlignment()
@@ -812,7 +1039,23 @@ namespace UnitTests
                 yield return MergeCells(SpanDepth(3, 1), NamedCell("insurance"));
                 yield return MergeCells(SpanDepth(2, 2), ColRowLabel("D", 16));
             }
-            CsExcel.Render.AsFile(Items(), """c:\temp\MergeCellsWithVerticalAlignment.xlsx""");
+            CsExcel.Render.AsFile(Items(), TestFiles.PathFor("MergeCellsWithVerticalAlignment.xlsx"));
+
+            using var wb = TestFiles.Open("MergeCellsWithVerticalAlignment.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("ID", ws.Cell(2, 1).GetString());
+            Assert.Equal(1, ws.Cell(3, 1).GetValue<int>());
+            Assert.Equal("Ford Fiesta", ws.Cell(3, 2).GetString());
+            Assert.Equal("AB12 CDE", ws.Cell(3, 4).GetString());
+            Assert.Equal("Another Technical Detail", ws.Cell(7, 3).GetString());
+            Assert.Equal("Merging from a starting cell given a depth and span", ws.Cell(10, 1).GetString());
+            Assert.Equal("The components that make up a car are: ", ws.Cell(12, 2).GetString());
+            Assert.Equal("Road Tax", ws.Cell(15, 2).GetString());
+            var mergedRanges = ws.MergedRanges.Select(m => m.RangeAddress.ToString()).ToHashSet();
+            foreach (var expected in new[] { "A3:A6", "B3:B6", "D3:D6", "C7:C8", "A10:D10", "B12:D14", "B15:B16", "C15:D16", "B17:D17" })
+            {
+                Assert.Contains(expected, mergedRanges);
+            }
         }
 
         record JoiningInfo(string Name, int Age, decimal Fees, string DateJoined);
@@ -859,19 +1102,113 @@ namespace UnitTests
                 }
             }
             var items = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Vertical,CellStyleVertical);
-            CsExcel.Render.AsFile([.. items, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceVertical.xlsx""");
+            CsExcel.Render.AsFile([.. items, AutoFit(AutoFitFactory.All)], TestFiles.PathFor("RecordSequenceVertical.xlsx"));
 
             var items2 = CsExcel.Table.fromIEnumerable(records, CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
-            CsExcel.Render.AsFile([.. items2, AutoFit(AutoFitFactory.All)], """c:\temp\RecordSequenceHorizontal.xlsx""");
+            CsExcel.Render.AsFile([.. items2, AutoFit(AutoFitFactory.All)], TestFiles.PathFor("RecordSequenceHorizontal.xlsx"));
 
             foreach (var r in records.Take(1))
             {
                 var cellsVertical = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Vertical, CellStyleVertical);
-                CsExcel.Render.AsFile([.. cellsVertical, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceVertical.xlsx""");
+                CsExcel.Render.AsFile([.. cellsVertical, AutoFit(AutoFitFactory.All)], TestFiles.PathFor("RecordInstanceVertical.xlsx"));
 
                 var cellsHorizontal = CsExcel.Table.fromInstance(r,CsExcel.Table.DirectionFactory.Horizontal, CellStyleHorizontal);
-                CsExcel.Render.AsFile([.. cellsHorizontal, AutoFit(AutoFitFactory.All)], """c:\temp\RecordInstanceHorizontal.xlsx""");
+                CsExcel.Render.AsFile([.. cellsHorizontal, AutoFit(AutoFitFactory.All)], TestFiles.PathFor("RecordInstanceHorizontal.xlsx"));
             }
+
+            using (var wb = TestFiles.Open("RecordSequenceVertical.xlsx"))
+            {
+                var ws = wb.Worksheet(1);
+                Assert.Equal("Name", ws.Cell(1, 1).GetString());
+                Assert.True(ws.Cell(1, 1).Style.Font.Bold);
+                Assert.Equal("Jane Smith", ws.Cell(1, 2).GetString());
+                Assert.Equal("Michael Nguyễn", ws.Cell(1, 3).GetString());
+                Assert.Equal("Fees", ws.Cell(3, 1).GetString());
+                Assert.Equal(59.25, ws.Cell(3, 2).GetValue<double>());
+                Assert.Equal("$0.00", ws.Cell(3, 2).Style.NumberFormat.Format);
+                Assert.Equal("2022-03-12", ws.Cell(4, 2).GetString());
+            }
+            using (var wb = TestFiles.Open("RecordSequenceHorizontal.xlsx"))
+            {
+                var ws = wb.Worksheet(1);
+                Assert.Equal(["Name", "Age", "Fees", "DateJoined"], new[] { 1, 2, 3, 4 }.Select(c => ws.Cell(1, c).GetString()));
+                Assert.True(ws.Cell(1, 1).Style.Font.Bold);
+                Assert.Equal("Jane Smith", ws.Cell(2, 1).GetString());
+                Assert.Equal(32, ws.Cell(2, 2).GetValue<int>());
+                Assert.Equal(59.25, ws.Cell(2, 3).GetValue<double>());
+                Assert.Equal("$0.00", ws.Cell(2, 3).Style.NumberFormat.Format);
+                Assert.Equal("Sofia Hernández", ws.Cell(4, 1).GetString());
+            }
+            using (var wb = TestFiles.Open("RecordInstanceVertical.xlsx"))
+            {
+                var ws = wb.Worksheet(1);
+                Assert.Equal("Name", ws.Cell(1, 1).GetString());
+                Assert.Equal("Jane Smith", ws.Cell(1, 2).GetString());
+                Assert.Equal("Age", ws.Cell(2, 1).GetString());
+                Assert.Equal(32, ws.Cell(2, 2).GetValue<int>());
+            }
+            using (var wb = TestFiles.Open("RecordInstanceHorizontal.xlsx"))
+            {
+                var ws = wb.Worksheet(1);
+                Assert.Equal(["Name", "Age", "Fees", "DateJoined"], new[] { 1, 2, 3, 4 }.Select(c => ws.Cell(1, c).GetString()));
+                Assert.Equal("Jane Smith", ws.Cell(2, 1).GetString());
+                Assert.Equal(32, ws.Cell(2, 2).GetValue<int>());
+            }
+        }
+
+        record Wide(string A, string B, string C, string D, string E);
+
+        [Fact]
+        void TableFromIEnumerableVerticalFieldCountDiffersFromRecordCount()
+        {
+            // Regression test: Table.fromIEnumerable's Vertical layout must return the cursor to
+            // row 1 between columns based on the number of FIELDS per record (5, here), not the
+            // number of records (2, here) - those two numbers used to be conflated. With more fields
+            // than records+1, the old code returned the cursor too high, so every column after the
+            // first started progressively below row 1 instead of at it.
+            var rows = new[]
+            {
+                new Wide("A1", "A2", "A3", "A4", "A5"),
+                new Wide("B1", "B2", "B3", "B4", "B5"),
+            };
+            CellProp[] NoStyle(int index, string name) => [];
+            var items = CsExcel.Table.fromIEnumerable(rows, CsExcel.Table.DirectionFactory.Vertical, NoStyle);
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("TableVerticalFieldCountMismatch.xlsx"));
+
+            using var wb = TestFiles.Open("TableVerticalFieldCountMismatch.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal(["A", "B", "C", "D", "E"], new[] { 1, 2, 3, 4, 5 }.Select(r => ws.Cell(r, 1).GetString()));
+            for (var i = 0; i < rows.Length; i++)
+            {
+                var col = i + 2; // column A is the header; each record gets the next column over
+                var expected = new[] { rows[i].A, rows[i].B, rows[i].C, rows[i].D, rows[i].E };
+                for (var f = 0; f < expected.Length; f++)
+                {
+                    Assert.Equal(expected[f], ws.Cell(f + 1, col).GetString());
+                }
+            }
+        }
+
+        interface IBase { string Name { get; } }
+        record DerivedInfo(string Name, int Extra) : IBase;
+
+        [Fact]
+        void TableFromInstancePolymorphicTypeUsesDeclaredTypeFields()
+        {
+            // Regression test: the header and body field sets must both come from the declared
+            // type parameter 'T (IBase, here), not the runtime type of the instance (DerivedInfo,
+            // which has an extra "Extra" property) - otherwise they diverge and either throw
+            // (Vertical: List.zip length mismatch) or silently misalign columns (Horizontal).
+            IBase instance = new DerivedInfo("Widget", 42);
+            CellProp[] NoStyle(int index, string name) => [];
+            var items = CsExcel.Table.fromInstance(instance, CsExcel.Table.DirectionFactory.Vertical, NoStyle);
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("TablePolymorphicInstance.xlsx"));
+
+            using var wb = TestFiles.Open("TablePolymorphicInstance.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:B1", ws.RangeUsed().RangeAddress.ToString());
+            Assert.Equal("Name", ws.Cell(1, 1).GetString());
+            Assert.Equal("Widget", ws.Cell(1, 2).GetString());
         }
         [Fact]
         void RenderingInFableElmishOrSimilar()
@@ -907,7 +1244,17 @@ namespace UnitTests
                     FormatCode("hh:mm:ss")
                 ]),
             };
-            CsExcel.Render.AsFile(items, """c:\temp\DataTypes.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("DataTypes.xlsx"));
+
+            using var wb = TestFiles.Open("DataTypes.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("string", ws.Cell(1, 2).GetString());
+            Assert.Equal(42, ws.Cell(2, 2).GetValue<int>());
+            Assert.Equal(Math.PI, ws.Cell(3, 2).GetValue<double>(), precision: 10);
+            Assert.False(ws.Cell(4, 2).GetValue<bool>());
+            Assert.Equal(new System.DateTime(1903, 12, 17), ws.Cell(5, 2).GetValue<System.DateTime>());
+            Assert.Equal("hh:mm:ss", ws.Cell(6, 2).Style.NumberFormat.Format);
+            Assert.Equal(new System.TimeSpan(hours: 1, minutes: 2, seconds: 3).TotalDays, ws.Cell(6, 2).GetValue<double>(), precision: 6);
         }
         [Fact]
         void RenderingAsHtml()
@@ -965,6 +1312,12 @@ namespace UnitTests
 
             var htmlString = CsExcel.Render.AsHtml(items, IsHeader);
             // HTML(htmlString) can be used in notebook
+
+            Assert.Contains("<h3>Worksheet 1</h3>", htmlString);
+            Assert.Contains("<h3>Worksheet 2</h3>", htmlString);
+            Assert.Contains("I am another table", htmlString);
+            Assert.Contains("font-weight: bold", htmlString);
+            Assert.Contains("I am bold", htmlString);
         }
         [Fact]
         void AutoFilterEnableOnly()
@@ -989,7 +1342,14 @@ namespace UnitTests
                            Go(NewRow)
                        }).SelectMany(x => x);
             IEnumerable<Item> items = [.. headings, .. rows, AutoFit(AutoFitFactory.All), AutoFilter([AutoFilterFactory.EnableOnly(AutoFilterRangeFactory.RangeUsed)])];
-            CsExcel.Render.AsFile(items, """c:\temp\AutoFilterEnableOnly.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("AutoFilterEnableOnly.xlsx"));
+
+            using var wb = TestFiles.Open("AutoFilterEnableOnly.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:E6", ws.RangeUsed().RangeAddress.ToString());
+            Assert.True(ws.AutoFilter.IsEnabled);
+            Assert.Equal("A1:E6", ws.AutoFilter.Range.RangeAddress.ToString());
+            Assert.Equal("String3", ws.Cell(4, 1).GetString());
         }
         [Fact]
         void AutoFilterCompound()
@@ -1023,7 +1383,13 @@ namespace UnitTests
                             AutoFilterFactory.EqualToBool(AutoFilterRangeFactory.RangeUsed,5,true)
                         ])
                 ];
-            CsExcel.Render.AsFile(items, """c:\temp\AutoFilterCompound.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("AutoFilterCompound.xlsx"));
+
+            using var wb = TestFiles.Open("AutoFilterCompound.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:E6", ws.RangeUsed().RangeAddress.ToString());
+            Assert.True(ws.AutoFilter.IsEnabled);
+            Assert.Equal("A1:E6", ws.AutoFilter.Range.RangeAddress.ToString());
         }
 
         static Item[] MakeFreezePanesHeadingsAndRows()
@@ -1054,25 +1420,45 @@ namespace UnitTests
         void FreezePanesRowAndColumn()
         {
             IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(Panes(1, 1))];
-            CsExcel.Render.AsFile(items, """c:\temp\FreezePanes.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("FreezePanes.xlsx"));
+
+            using var wb = TestFiles.Open("FreezePanes.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal(1, ws.SheetView.SplitRow);
+            Assert.Equal(1, ws.SheetView.SplitColumn);
         }
         [Fact]
         void FreezePanesTopRow()
         {
             IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(TopRow)];
-            CsExcel.Render.AsFile(items, """c:\temp\FreezePanesTopRow.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("FreezePanesTopRow.xlsx"));
+
+            using var wb = TestFiles.Open("FreezePanesTopRow.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal(1, ws.SheetView.SplitRow);
+            Assert.Equal(0, ws.SheetView.SplitColumn);
         }
         [Fact]
         void FreezePanesFirstColumn()
         {
             IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(FirstColumn)];
-            CsExcel.Render.AsFile(items, """c:\temp\FreezePanesFirstColumn.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("FreezePanesFirstColumn.xlsx"));
+
+            using var wb = TestFiles.Open("FreezePanesFirstColumn.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal(0, ws.SheetView.SplitRow);
+            Assert.Equal(1, ws.SheetView.SplitColumn);
         }
         [Fact]
         void FreezePanesUnfreezePanes()
         {
             IEnumerable<Item> items = [.. MakeFreezePanesHeadingsAndRows(), AutoFit(AutoFitFactory.All), FreezePanes(TopRow), FreezePanes(UnfreezePanes)];
-            CsExcel.Render.AsFile(items, """c:\temp\FreezePanesUnfreezePanes.xlsx""");
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("FreezePanesUnfreezePanes.xlsx"));
+
+            using var wb = TestFiles.Open("FreezePanesUnfreezePanes.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal(0, ws.SheetView.SplitRow);
+            Assert.Equal(0, ws.SheetView.SplitColumn);
         }
     }
 }
