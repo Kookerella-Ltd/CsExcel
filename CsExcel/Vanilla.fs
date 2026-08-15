@@ -190,7 +190,19 @@ module Table =
         let cache = ConcurrentDictionary<System.Type, PropertyInfo[]>()
         let ofType (t : System.Type) =
             cache.GetOrAdd(t, fun t ->
-                t.GetProperties(BindingFlags.Public ||| BindingFlags.Instance)
+                // Type.GetProperties only returns members declared directly on an interface, not
+                // ones inherited from a base interface it extends (unlike classes, where inherited
+                // members are included automatically) - so for interfaces we also have to walk
+                // GetInterfaces() ourselves and union in their properties too.
+                let declared = t.GetProperties(BindingFlags.Public ||| BindingFlags.Instance)
+                let inherited =
+                    if t.IsInterface then
+                        t.GetInterfaces()
+                        |> Array.collect (fun i -> i.GetProperties(BindingFlags.Public ||| BindingFlags.Instance))
+                    else
+                        [||]
+                Array.append declared inherited
+                |> Array.distinctBy (fun p -> p.Name)
                 |> Array.filter (fun p -> p.CanRead && p.GetIndexParameters().Length = 0))
 
     module private Cells =
@@ -281,7 +293,9 @@ module Table =
                         Go (DownBy 1)
                     Go (UpBy depth)
                     Go (RightBy 1)
-                Go (DownBy (depth-1))
+                // depth-1 is normally >= 0, but guard the degenerate case of a type with no fields
+                // (depth = 0), where DownBy(-1) would otherwise move the cursor up instead of down.
+                Go (DownBy (max 0 (depth-1)))
                 Go NewRow
             ]
         | Horizontal ->

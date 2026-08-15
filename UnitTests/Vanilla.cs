@@ -1210,6 +1210,52 @@ namespace UnitTests
             Assert.Equal("Name", ws.Cell(1, 1).GetString());
             Assert.Equal("Widget", ws.Cell(1, 2).GetString());
         }
+
+        interface IHasId { string Id { get; } }
+        interface IBaseWithInheritedProperty : IHasId { string Name { get; } }
+        record DerivedWithInheritedProperty(string Id, string Name, int Extra) : IBaseWithInheritedProperty;
+
+        [Fact]
+        void TableFromInstanceMultiLevelInterfaceIncludesBaseInterfaceFields()
+        {
+            // Regression test: Type.GetProperties only returns properties declared directly on an
+            // interface, not ones inherited from a base interface it extends (unlike classes, where
+            // GetProperties does include inherited members) - so IBaseWithInheritedProperty's own
+            // "Name" property must be combined with IHasId's "Id" property, not just "Name" alone.
+            IBaseWithInheritedProperty instance = new DerivedWithInheritedProperty("id-1", "Widget", 42);
+            CellProp[] NoStyle(int index, string name) => [];
+            var items = CsExcel.Table.fromInstance(instance, CsExcel.Table.DirectionFactory.Vertical, NoStyle);
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("TableMultiLevelInterfaceInstance.xlsx"));
+
+            using var wb = TestFiles.Open("TableMultiLevelInterfaceInstance.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("A1:B2", ws.RangeUsed().RangeAddress.ToString());
+            var headers = new[] { ws.Cell(1, 1).GetString(), ws.Cell(2, 1).GetString() };
+            Assert.Contains("Id", headers);
+            Assert.Contains("Name", headers);
+        }
+
+        class NoFields { }
+
+        [Fact]
+        void TableFromIEnumerableVerticalZeroFieldTypeDoesNotThrow()
+        {
+            // Smoke test, not a true regression test: fromIEnumerable's Vertical branch ends with
+            // Go(DownBy(depth-1)), where depth is the field count - a type with zero public
+            // readable properties makes depth 0, which used to underflow to DownBy(-1). That
+            // underflow turns out to be harmless in practice (Go's row math clamps elsewhere in
+            // this module), so this test can't actually distinguish the guarded code from the
+            // unguarded version - both pass it. Kept anyway as cheap insurance/documentation for the
+            // degenerate zero-field case, and a leading marker cell forces a worksheet to exist (a
+            // workbook with zero cells has no worksheet at all and can't be saved).
+            var tableItems = CsExcel.Table.fromIEnumerable(new[] { new NoFields(), new NoFields() }, CsExcel.Table.DirectionFactory.Vertical, (int index, string name) => []);
+            IEnumerable<Item> items = [Cell([String("marker")]), .. tableItems];
+            CsExcel.Render.AsFile(items, TestFiles.PathFor("TableVerticalZeroFieldType.xlsx"));
+
+            using var wb = TestFiles.Open("TableVerticalZeroFieldType.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.Equal("marker", ws.Cell(1, 1).GetString());
+        }
         [Fact]
         void RenderingInFableElmishOrSimilar()
         {
