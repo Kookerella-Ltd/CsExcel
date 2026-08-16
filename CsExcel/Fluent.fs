@@ -6,12 +6,14 @@ open System
 open CsExcel
 open ClosedXML.Excel
 
-// A mutable, chainable builder for the props of a single Cell or Style item - the C#-native
-// alternative to composing an immutable CellProp seq by hand. `toItem` is which Item case the
-// finished prop list becomes: Item.Cell for Cell(), Item.Style for Style(). Method names drop the
-// "Add" prefix (plain .String(...) rather than .AddString(...)) and Bold/Italic/StrikeThrough are
-// zero-arg calls rather than values imported from FontEmphasisFactory, matching how a C# fluent
-// builder is normally shaped.
+/// <summary>
+/// A mutable, chainable builder for the props of a single Cell or Style item - the C#-native
+/// alternative to composing an immutable CellProp seq by hand, e.g.
+/// <c>Cell().String("x").Bold().FontColor(XLColor.Red)</c>. Build one with
+/// <c>ItemFactory.Cell()</c> or <c>ItemFactory.Style()</c>, chain any of its methods, then either
+/// call <c>ToItem()</c> explicitly or pass/yield the builder itself wherever an <c>Item</c> is
+/// expected (it converts implicitly).
+/// </summary>
 type CellPropsBuilder(toItem : CellProp list -> Item) =
     let props = ResizeArray<CellProp>()
     member private this.Add(p : CellProp) =
@@ -43,6 +45,7 @@ type CellPropsBuilder(toItem : CellProp list -> Item) =
     member this.Name(name : string) = this.Add(CellProp.Name name)
     member this.ScopedName(name : string, scope : NameScope) = this.Add(CellProp.ScopedName(name, scope))
     member this.CellSize(size : Size) = this.Add(CellProp.CellSize size)
+    /// <summary>Finishes the builder, producing the <c>Item</c> (Cell or Style) it was building.</summary>
     member this.ToItem() = props |> List.ofSeq |> toItem
     /// For the rarer case of building a bare CellProp list rather than a full Item - e.g. a
     /// per-column style callback passed to CsExcel.Table.fromInstance/fromIEnumerable.
@@ -51,6 +54,11 @@ type CellPropsBuilder(toItem : CellProp list -> Item) =
     /// `yield return`, method arguments) without an explicit terminal call.
     static member op_Implicit(builder : CellPropsBuilder) : Item = builder.ToItem()
 
+/// <summary>
+/// Extension methods that let an <c>IEnumerable&lt;Item&gt;</c> render itself directly (e.g.
+/// <c>items.AsFile("out.xlsx")</c>) instead of calling <c>CsExcel.Render.AsFile(items, path)</c>.
+/// Equivalent to the members of <c>CsExcel.Render</c> - see there for details on each.
+/// </summary>
 [<Extension>]
 type RenderExtensions =
     [<Extension>]
@@ -69,8 +77,15 @@ type RenderExtensions =
     static member AsWorkBook(cells : Item seq) =
         Render.AsWorkBook(cells)
 
+/// <summary>
+/// Items other than a single styled cell - a workbook is still just a flat
+/// <c>IEnumerable&lt;Item&gt;</c> (see <c>CsExcel.ItemFactory</c> for the underlying model), built
+/// with a mix of <c>ItemFactory.Cell()</c>/<c>Style()</c> builders and these plain items.
+/// </summary>
 module ItemFactory =
+    /// <summary>Starts building a cell at the current cursor position - chain props then call <c>ToItem()</c> or use the builder directly as an <c>Item</c>.</summary>
     let Cell() = CellPropsBuilder(Item.Cell)
+    /// <summary>Starts building an ambient style applied to every cell written after this point, until the next <c>Style()</c> changes or clears it.</summary>
     let Style() = CellPropsBuilder(Item.Style)
     let AutoFilter(filters : AutoFilter seq) =
         filters
@@ -78,8 +93,15 @@ module ItemFactory =
     let BorderMergedCell(borderProps : StyleMergedCell seq) =
         borderProps
         |> ItemFactory.BorderMergedCell
+    /// <summary>Moves the cursor without writing a cell - see <c>PositionFactory</c> for the available moves.</summary>
     let Go(position) =
         Item.Go position
+    /// <summary>
+    /// Creates a new worksheet with the given name if it doesn't already exist, and makes it the
+    /// active sheet that subsequent items apply to. If it already exists, switches back to it
+    /// instead. This is how worksheets are created and switched between - just include a
+    /// <c>Worksheet</c> item in the sequence wherever you want one.
+    /// </summary>
     let Worksheet(name) =
         Item.Worksheet name
     let AutoFit(autoFit) =

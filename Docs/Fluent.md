@@ -11,6 +11,8 @@ CsExcel ships two calling styles over the same underlying model:
 
 Pick whichever your team prefers — both produce identical output, and a project can mix them freely.
 
+> **Prefer to see it running first?** [Examples/CsExcel.Examples](../Examples/CsExcel.Examples) is a small console project covering this style, the vanilla style, and building a table from a C# type via reflection. Clone the repo and `dotnet run` it directly — see the [README](../README.md#example-project) for details.
+
 ## Setup
 
 ```csharp

@@ -9,4 +9,5 @@
   </Folder>
   <Project Path="CsExcel/CsExcel.fsproj" />
   <Project Path="UnitTests/UnitTests.csproj" />
+  <Project Path="Examples/CsExcel.Examples/CsExcel.Examples.csproj" />
 </Solution>

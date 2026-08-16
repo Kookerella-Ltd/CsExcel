@@ -11,6 +11,18 @@ CsExcel is a C# wrapper around [**FsExcel**](https://github.com/misterspeedy/FsE
 
 Both styles produce identical output and can be mixed freely in the same project. Each doc walks through the same set of features FsExcel's own tutorial covers, translated into C#, with runnable tests behind every example (see [UnitTests/](UnitTests/)).
 
+## Example project
+
+[Examples/CsExcel.Examples](Examples/CsExcel.Examples) is a small runnable console project showing both calling styles side by side, plus building a table straight from a C# record via reflection. Clone the repo and run it directly:
+
+```bash
+git clone https://github.com/Kookerella-Ltd/CsExcel.git
+cd CsExcel/Examples/CsExcel.Examples
+dotnet run
+```
+
+It writes three `.xlsx` files to its output folder and prints their paths.
+
 ## Attribution
 
 - **FsExcel**: https://github.com/misterspeedy/FsExcel — the library this project wraps.
