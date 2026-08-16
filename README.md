@@ -6,14 +6,14 @@ CsExcel is a C# wrapper around [**FsExcel**](https://github.com/misterspeedy/FsE
 
 ## Documentation
 
-- [Docs/Vanilla.md](Docs/Vanilla.md) — static factory methods and collection literals (`Cell([String("x"), FontEmphasis(Bold)])`), the closest match to FsExcel's own shape.
-- [Docs/Fluent.md](Docs/Fluent.md) — a chainable builder (`Cell().String("x").Bold()`), closer to a typical C# builder API.
+- [Docs/Vanilla.md](https://github.com/Kookerella-Ltd/CsExcel/blob/master/Docs/Vanilla.md) — static factory methods and collection literals (`Cell([String("x"), FontEmphasis(Bold)])`), the closest match to FsExcel's own shape.
+- [Docs/Fluent.md](https://github.com/Kookerella-Ltd/CsExcel/blob/master/Docs/Fluent.md) — a chainable builder (`Cell().String("x").Bold()`), closer to a typical C# builder API.
 
-Both styles produce identical output and can be mixed freely in the same project. Each doc walks through the same set of features FsExcel's own tutorial covers, translated into C#, with runnable tests behind every example (see [UnitTests/](UnitTests/)).
+Both styles produce identical output and can be mixed freely in the same project. Each doc walks through the same set of features FsExcel's own tutorial covers, translated into C#, with runnable tests behind every example (see [UnitTests/](https://github.com/Kookerella-Ltd/CsExcel/tree/master/UnitTests)).
 
 ## Example project
 
-[Examples/CsExcel.Examples](Examples/CsExcel.Examples) is a small runnable console project showing both calling styles side by side, plus building a table straight from a C# record via reflection. Clone the repo and run it directly:
+[Examples/CsExcel.Examples](https://github.com/Kookerella-Ltd/CsExcel/tree/master/Examples/CsExcel.Examples) is a small runnable console project showing both calling styles side by side, plus building a table straight from a C# record via reflection. Clone the repo and run it directly:
 
 ```bash
 git clone https://github.com/Kookerella-Ltd/CsExcel.git
@@ -32,6 +32,6 @@ If something here seems to behave unexpectedly, check FsExcel's own documentatio
 
 ## License
 
-CsExcel's own code (this wrapper) is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.txt) — free to use, modify, and distribute for noncommercial purposes; commercial use requires a separate arrangement with the licensor, [Kookerella Ltd](https://github.com/Kookerella-Ltd/Kookerella-Ltd).
+CsExcel's own code (this wrapper) is licensed under the [PolyForm Noncommercial License 1.0.0](https://github.com/Kookerella-Ltd/CsExcel/blob/master/LICENSE.txt) — free to use, modify, and distribute for noncommercial purposes; commercial use requires a separate arrangement with the licensor, [Kookerella Ltd](https://github.com/Kookerella-Ltd/Kookerella-Ltd).
 
 This applies only to CsExcel's own code. FsExcel and ClosedXML, the libraries CsExcel depends on, are each licensed separately under the MIT License by their own authors — CsExcel's license doesn't change or restrict the terms those libraries are already available under as NuGet dependencies.
