@@ -20,6 +20,6 @@ If something here seems to behave unexpectedly, check FsExcel's own documentatio
 
 ## License
 
-CsExcel's own code (this wrapper) is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.txt) — free to use, modify, and distribute for noncommercial purposes; commercial use requires a separate arrangement with the licensor.
+CsExcel's own code (this wrapper) is licensed under the [PolyForm Noncommercial License 1.0.0](LICENSE.txt) — free to use, modify, and distribute for noncommercial purposes; commercial use requires a separate arrangement with the licensor, [Kookerella Ltd](https://github.com/Kookerella-Ltd/Kookerella-Ltd).
 
 This applies only to CsExcel's own code. FsExcel and ClosedXML, the libraries CsExcel depends on, are each licensed separately under the MIT License by their own authors — CsExcel's license doesn't change or restrict the terms those libraries are already available under as NuGet dependencies.
