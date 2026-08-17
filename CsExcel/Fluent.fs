@@ -7,18 +7,24 @@ open CsExcel
 open ClosedXML.Excel
 
 /// <summary>
-/// A mutable, chainable builder for the props of a single Cell or Style item - the C#-native
+/// An immutable, chainable builder for the props of a single Cell or Style item - the C#-native
 /// alternative to composing an immutable CellProp seq by hand, e.g.
-/// <c>Cell().String("x").Bold().FontColor(XLColor.Red)</c>. Build one with
-/// <c>ItemFactory.Cell()</c> or <c>ItemFactory.Style()</c>, chain any of its methods, then either
-/// call <c>ToItem()</c> explicitly or pass/yield the builder itself wherever an <c>Item</c> is
-/// expected (it converts implicitly).
+/// <c>Cell().String("x").Bold().FontColor(XLColor.Red)</c>.
+/// <para>
+/// <b>This type is immutable, like <see cref="string"/>: every method returns a new builder
+/// instead of changing the one it was called on.</b> A call made without using its result (e.g.
+/// <c>cell.Bold();</c> as its own statement) does nothing observable - assign the result back
+/// (<c>cell = cell.Bold();</c>) or use it directly. The payoff is that a partially-built chain
+/// can safely be kept in a variable and reused as the shared starting point for several different
+/// continuations, since none of them can affect each other or the original.
+/// </para>
+/// Build one with <c>ItemFactory.Cell()</c> or <c>ItemFactory.Style()</c>, chain any of its
+/// methods, then either call <c>ToItem()</c> explicitly or pass/yield the builder itself wherever
+/// an <c>Item</c> is expected (it converts implicitly).
 /// </summary>
-type CellPropsBuilder(toItem : CellProp list -> Item) =
-    let props = ResizeArray<CellProp>()
-    member private this.Add(p : CellProp) =
-        props.Add p
-        this
+type CellPropsBuilder private (toItem : CellProp list -> Item, props : CellProp list) =
+    new(toItem : CellProp list -> Item) = CellPropsBuilder(toItem, [])
+    member private this.Add(p : CellProp) = CellPropsBuilder(toItem, p :: props)
     member this.String(s : string) = this.Add(CellProp.String s)
     member this.Float(f : float) = this.Add(CellProp.Float f)
     member this.Integer(i : int) = this.Add(CellProp.Integer i)
@@ -46,10 +52,10 @@ type CellPropsBuilder(toItem : CellProp list -> Item) =
     member this.ScopedName(name : string, scope : NameScope) = this.Add(CellProp.ScopedName(name, scope))
     member this.CellSize(size : Size) = this.Add(CellProp.CellSize size)
     /// <summary>Finishes the builder, producing the <c>Item</c> (Cell or Style) it was building.</summary>
-    member this.ToItem() = props |> List.ofSeq |> toItem
+    member this.ToItem() = props |> List.rev |> toItem
     /// For the rarer case of building a bare CellProp list rather than a full Item - e.g. a
     /// per-column style callback passed to CsExcel.Table.fromInstance/fromIEnumerable.
-    member this.ToCellProps() : CellProp seq = upcast props
+    member this.ToCellProps() : CellProp seq = props |> List.rev |> List.toSeq
     /// Lets a builder be used anywhere an Item is expected (array/collection-expression elements,
     /// `yield return`, method arguments) without an explicit terminal call.
     static member op_Implicit(builder : CellPropsBuilder) : Item = builder.ToItem()

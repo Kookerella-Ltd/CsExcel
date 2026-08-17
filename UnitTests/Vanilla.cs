@@ -257,7 +257,6 @@ namespace UnitTests
                                 FontSize(10 + (i * 2))]);
 
                 }
-                Go(PositionFactory.NewRow);
             };
             CsExcel.Render.AsFile(Items(), TestFiles.PathFor("FontAndNameSize.xlsx"));
 

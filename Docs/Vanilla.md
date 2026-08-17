@@ -1,6 +1,6 @@
 # CsExcel — Vanilla API Guide
 
-CsExcel is a C# wrapper around [**FsExcel**](https://github.com/misterspeedy/FsExcel), an F# library for writing Excel workbooks (via [ClosedXML](https://github.com/ClosedXML/ClosedXML)) using a flat, declarative list of instructions instead of ClosedXML's own cell-by-cell object model.
+CsExcel brings a **declarative, functional** way to generate Excel workbooks to C#: a workbook is an immutable sequence of instructions, not an object you mutate cell by cell. It's a C# wrapper around [**FsExcel**](https://github.com/misterspeedy/FsExcel), an F# library that pioneered this model on top of [ClosedXML](https://github.com/ClosedXML/ClosedXML)'s own, more traditional cell-by-cell object model.
 
 > **All of the design and functionality here is FsExcel's** — CsExcel just exposes it in a form C# code can call directly. This guide covers the same ground as [FsExcel's own README](https://github.com/misterspeedy/FsExcel#readme), translated into C#, but FsExcel's docs are the deeper, authoritative reference: check there first for anything not covered below, for the reasoning behind how a feature works, or for functionality added after this guide was written.
 

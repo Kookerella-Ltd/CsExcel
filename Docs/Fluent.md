@@ -1,6 +1,6 @@
 # CsExcel — Fluent API Guide
 
-CsExcel is a C# wrapper around [**FsExcel**](https://github.com/misterspeedy/FsExcel), an F# library for writing Excel workbooks (via [ClosedXML](https://github.com/ClosedXML/ClosedXML)) using a flat, declarative list of instructions instead of ClosedXML's own cell-by-cell object model.
+CsExcel brings a **declarative, functional** way to generate Excel workbooks to C#: a workbook is an immutable sequence of instructions, not an object you mutate cell by cell. It's a C# wrapper around [**FsExcel**](https://github.com/misterspeedy/FsExcel), an F# library that pioneered this model on top of [ClosedXML](https://github.com/ClosedXML/ClosedXML)'s own, more traditional cell-by-cell object model.
 
 > **All of the design and functionality here is FsExcel's** — CsExcel just exposes it in a form C# code can call directly. This guide covers the same ground as [FsExcel's own README](https://github.com/misterspeedy/FsExcel#readme), translated into C#, but FsExcel's docs are the deeper, authoritative reference: check there first for anything not covered below, for the reasoning behind how a feature works, or for functionality added after this guide was written. (The fluent builder shown here is a CsExcel-specific addition on top of FsExcel's model, not something FsExcel itself has — see [Vanilla.md](Vanilla.md) for the style that maps most directly onto FsExcel's own API.)
 
@@ -29,7 +29,15 @@ Later examples pull in a few more `using static` directives as needed (`BorderFa
 
 A workbook is built from a flat `IEnumerable<Item>` — mostly `Cell`s, plus a handful of other item kinds (`Go`, `Style`, `Worksheet`, `MergeCells`, ...). Rendering walks the sequence in order, maintaining an internal cursor: writing a cell moves the cursor one column to the right by default, much like typing a value into Excel and pressing Tab.
 
-`Cell()` and `Style()` return a mutable `CellPropsBuilder` you chain calls onto — `.String(...)`, `.Bold()`, `.Border(...)`, and so on — each returning the same builder so calls can be chained. The builder converts to `Item` automatically wherever an `Item` is expected (array elements, `yield return`, method arguments), so there's normally no explicit "build" step. Every other item kind (`Go`, `Worksheet`, `MergeCells`, `AutoFilter`, ...) is a plain static function, since those take simple values rather than a list of props to build up.
+`Cell()` and `Style()` return an **immutable** `CellPropsBuilder` you chain calls onto — `.String(...)`, `.Bold()`, `.Border(...)`, and so on. Each call returns a *new* builder rather than changing the one you called it on, consistent with the rest of the API being built from immutable values. That has one concrete consequence: a chained call is an expression, not a mutating statement, so its result must be used —
+
+```csharp
+var cell = Cell().String("x");
+cell.Bold();          // does nothing useful - the result is discarded, `cell` is unchanged
+cell = cell.Bold();   // correct - captures the new, bold builder
+```
+
+The upside of immutability is that a partially-built chain can safely be kept in a variable and reused as the shared starting point for several different continuations, without them affecting each other or a later one silently picking up an earlier one's changes. The builder converts to `Item` automatically wherever an `Item` is expected (array elements, `yield return`, method arguments), so there's normally no explicit "build" step. Every other item kind (`Go`, `Worksheet`, `MergeCells`, `AutoFilter`, ...) is a plain static function, since those take simple values rather than a list of props to build up.
 
 > **LINQ query syntax note:** a bare `select Cell()...` inside a `from ... select ...` query infers `IEnumerable<CellPropsBuilder>`, not `IEnumerable<Item>`, since C# doesn't apply implicit conversions inside query-expression type inference. Use `foreach`/`yield return` instead (as every example below does) — the iterator method's declared `IEnumerable<Item>` return type triggers the conversion correctly.
 
@@ -113,7 +121,7 @@ CsExcel.Render.AsFile(Items(), @"c:\temp\Indentation.xlsx");
 
 ## Borders and font styling
 
-Chained calls control formatting — here a bottom border and bold/italic on the headings, plus a conditional strikethrough on one particular row. `Bold()`, `Italic()`, and `StrikeThrough()` are plain zero-argument calls; because the builder is a mutable object, a plain `if` can decide whether to call one, rather than needing to build a conditional prop list up front:
+Chained calls control formatting — here a bottom border and bold/italic on the headings, plus a conditional strikethrough on one particular row. `Bold()`, `Italic()`, and `StrikeThrough()` are plain zero-argument calls, so a plain `if` can decide whether to call one, rather than needing to build a conditional prop list up front. Remember the result still needs assigning back (see [above](#the-model-cells-and-a-cursor)), even for a conditional call:
 
 ```csharp
 using static CsExcel.BorderFactory;
@@ -132,7 +140,7 @@ IEnumerable<Item> Items()
     {
         var monthName = CultureInfo.GetCultureInfo("en-GB").DateTimeFormat.GetMonthName(m);
         var monthCell = Cell().String(monthName).Underline(DoubleAccounting);
-        if (monthName == "May") monthCell.StrikeThrough();
+        if (monthName == "May") monthCell = monthCell.StrikeThrough();
         yield return monthCell;
         yield return Cell().Integer(monthName.Length);
         yield return Go(NewRow);

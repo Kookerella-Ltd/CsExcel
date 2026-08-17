@@ -154,7 +154,7 @@ namespace UnitTests
                     var monthCell = Cell().String(monthName).Underline(DoubleAccounting);
                     if (monthName == "May")
                     {
-                        monthCell.StrikeThrough();
+                        monthCell = monthCell.StrikeThrough();
                     }
                     yield return monthCell;
                     yield return Cell().Integer(monthName.Length);
@@ -194,7 +194,7 @@ namespace UnitTests
                     var monthCell = Cell().String(monthName).Underline(DoubleAccounting);
                     if (monthName == "May")
                     {
-                        monthCell.StrikeThrough();
+                        monthCell = monthCell.StrikeThrough();
                     }
                     yield return monthCell;
                     yield return Cell().Integer(monthName.Length);
@@ -213,6 +213,28 @@ namespace UnitTests
             Assert.True(ws.Cell(6, 1).Style.Font.Strikethrough);
         }
         [Fact]
+        public void BuilderIsImmutable()
+        {
+            // The builder must be immutable: each chained call returns a new builder rather than
+            // mutating the original, so a partially-built chain kept in a variable can be reused
+            // as the shared starting point for independent branches without them affecting each
+            // other. If a chained call ever mutated in place instead, "italic" below would end up
+            // bold too.
+            var baseCell = Cell().String("x");
+            var bold = baseCell.Bold();
+            var italic = baseCell.Italic();
+
+            Item[] cells = [ bold, italic ];
+            cells.AsFile(TestFiles.PathFor("fBuilderIsImmutable.xlsx"));
+
+            using var wb = TestFiles.Open("fBuilderIsImmutable.xlsx");
+            var ws = wb.Worksheet(1);
+            Assert.True(ws.Cell(1, 1).Style.Font.Bold);
+            Assert.False(ws.Cell(1, 1).Style.Font.Italic);
+            Assert.False(ws.Cell(1, 2).Style.Font.Bold);
+            Assert.True(ws.Cell(1, 2).Style.Font.Italic);
+        }
+        [Fact]
         public void FontAndNameSize()
         {
             var fontNames =
@@ -223,7 +245,6 @@ namespace UnitTests
                 {
                     yield return Cell().String(fontName).FontName(fontName).FontSize(10 + (i * 2));
                 }
-                Go(NewRow);
             };
             Items().AsFile(TestFiles.PathFor("fFontAndNameSize.xlsx"));
 

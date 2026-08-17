@@ -8,7 +8,7 @@
     <Version>1.0.2</Version>
     <Authors>Kookerella Ltd</Authors>
     <Company>Kookerella Ltd</Company>
-    <Description>A C# wrapper around FsExcel for writing Excel workbooks via ClosedXML, with a Vanilla (static factory) and a Fluent (chainable builder) calling style.</Description>
+    <Description>Generate Excel workbooks from C# declaratively and functionally: build a workbook as an immutable sequence of instructions, then render it, rather than mutating a workbook object cell by cell. Wraps FsExcel (via ClosedXML), with a Vanilla (static factory) and a Fluent (chainable, immutable builder) calling style.</Description>
     <PackageLicenseFile>LICENSE.txt</PackageLicenseFile>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageProjectUrl>https://github.com/Kookerella-Ltd/CsExcel</PackageProjectUrl>
