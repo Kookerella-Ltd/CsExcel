@@ -14,7 +14,7 @@
     <PackageProjectUrl>https://github.com/Kookerella-Ltd/CsExcel</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Kookerella-Ltd/CsExcel</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>excel;xlsx;spreadsheet;functional;declarative;csharp;dotnet;workbook;immutable;fsexcel;closedxml;reporting</PackageTags>
+    <PackageTags>csexcel;excel;xlsx;spreadsheet;functional;declarative;csharp;dotnet;workbook;immutable;fsexcel;closedxml;reporting</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
