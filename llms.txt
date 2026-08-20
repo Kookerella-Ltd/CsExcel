@@ -1,0 +1,23 @@
+# CsExcel
+
+> Declarative, functional Excel (.xlsx) generation for C#. Build a workbook as an immutable sequence of instructions, then render it, rather than mutating a workbook object cell by cell. A C# wrapper around FsExcel (F#), which itself builds on ClosedXML.
+
+CsExcel is for .NET/C# developers who want a functional, declarative alternative to imperative, mutable Excel-generation APIs (such as calling ClosedXML or EPPlus directly cell-by-cell). It ships two calling styles producing identical output:
+
+- **Vanilla** — static factory methods and collection literals, e.g. `Cell([String("x"), FontEmphasis(Bold)])`. The closest match to FsExcel's own shape.
+- **Fluent** — a chainable, immutable builder, e.g. `Cell().String("x").Bold()`. Reads like a typical C# builder API; each call returns a new builder rather than mutating the one it was called on.
+
+Install: `dotnet add package CsExcel`
+
+## Docs
+
+- [README](https://github.com/Kookerella-Ltd/CsExcel/blob/master/README.md): overview, install, quick-start code, attribution, license
+- [Vanilla API guide](https://github.com/Kookerella-Ltd/CsExcel/blob/master/Docs/Vanilla.md): static-factory calling style, walked through feature by feature
+- [Fluent API guide](https://github.com/Kookerella-Ltd/CsExcel/blob/master/Docs/Fluent.md): chainable immutable-builder calling style, walked through feature by feature
+- [Example project](https://github.com/Kookerella-Ltd/CsExcel/tree/master/Examples/CsExcel.Examples): runnable console app showing both styles, plus building a table from a C# record via reflection
+- [FsExcel README](https://github.com/misterspeedy/FsExcel#readme): authoritative reference for the underlying declarative model CsExcel wraps
+- [NuGet package](https://www.nuget.org/packages/CsExcel): published package, versions, dependencies
+
+## License
+
+CsExcel's own code is licensed under the PolyForm Noncommercial License 1.0.0 (free for noncommercial use; commercial use requires arrangement with Kookerella Ltd). FsExcel and ClosedXML, its dependencies, are each MIT-licensed by their own authors.

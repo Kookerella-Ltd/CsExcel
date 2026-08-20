@@ -4,6 +4,41 @@ CsExcel brings a **declarative, functional** way to generate Excel workbooks to 
 
 **All credit for the underlying design and implementation belongs to FsExcel.** CsExcel doesn't reimplement any of that — it's a thin C#-facing layer over the real library, so that C# developers who aren't writing F# can still use it directly, with two calling styles to choose from. FsExcel's own [README](https://github.com/misterspeedy/FsExcel#readme) is the authoritative reference for the library's design, and is worth reading directly for anything not covered here — new features, edge cases, and the reasoning behind how the API is shaped will show up there first.
 
+## Install
+
+```bash
+dotnet add package CsExcel
+```
+
+## Quick start
+
+A workbook is an immutable sequence of `Item`s — not an object you call `.Save()` on after mutating it — handed to a renderer. The same output can be built either declaratively (**Vanilla**) or with a chainable builder (**Fluent**):
+
+```csharp
+// Vanilla — static factories and collection literals
+using CsExcel;
+using static CsExcel.ItemFactory;
+using static CsExcel.CellPropFactory;
+
+var cells = new[]
+{
+    Cell([ String("Hello, Excel!"), FontEmphasis(Bold) ])
+};
+CsExcel.Render.AsFile(cells, @"c:\temp\HelloWorld.xlsx");
+```
+
+```csharp
+// Fluent — chainable, immutable builder
+using CsExcel;
+using CsExcel.Fluent;
+using static CsExcel.Fluent.ItemFactory;
+
+Item[] cells = [ Cell().String("Hello, Excel!").Bold() ];
+CsExcel.Render.AsFile(cells, @"c:\temp\HelloWorld.xlsx");
+```
+
+Both produce the same `.xlsx` file. See [Docs/Vanilla.md](https://github.com/Kookerella-Ltd/CsExcel/blob/master/Docs/Vanilla.md) and [Docs/Fluent.md](https://github.com/Kookerella-Ltd/CsExcel/blob/master/Docs/Fluent.md) for the full guide — rows, columns, styles, borders, merged cells, and building tables from C# records via reflection.
+
 ## Documentation
 
 - [Docs/Vanilla.md](https://github.com/Kookerella-Ltd/CsExcel/blob/master/Docs/Vanilla.md) — static factory methods and collection literals (`Cell([String("x"), FontEmphasis(Bold)])`), the closest match to FsExcel's own shape.

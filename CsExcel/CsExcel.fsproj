@@ -5,7 +5,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>CsExcel</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <Authors>Kookerella Ltd</Authors>
     <Company>Kookerella Ltd</Company>
     <Description>Generate Excel workbooks from C# declaratively and functionally: build a workbook as an immutable sequence of instructions, then render it, rather than mutating a workbook object cell by cell. Wraps FsExcel (via ClosedXML), with a Vanilla (static factory) and a Fluent (chainable, immutable builder) calling style.</Description>
@@ -14,7 +14,7 @@
     <PackageProjectUrl>https://github.com/Kookerella-Ltd/CsExcel</PackageProjectUrl>
     <RepositoryUrl>https://github.com/Kookerella-Ltd/CsExcel</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>excel;xlsx;fsexcel;closedxml;spreadsheet</PackageTags>
+    <PackageTags>excel;xlsx;spreadsheet;functional;declarative;csharp;dotnet;workbook;immutable;fsexcel;closedxml;reporting</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
